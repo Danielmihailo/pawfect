@@ -14,7 +14,7 @@ Bildlos:     standardmaessig uebersprungen (SKIP_NO_IMAGE=1).
 Env: SHOPIFY_SHOP, SHOPIFY_ACCESS_TOKEN, SHOPIFY_API_VERSION, PRICE_FACTOR, MIN_MARGIN, STATE_FILE, SKIP_NO_IMAGE
 State: STATE_FILE (JSON) = { ean: {p: product_id, v: variant_id, i: inventory_item_id} }
 """
-import os, sys, csv, io, json, time, argparse, urllib.request, urllib.error
+import os, sys, csv, io, json, time, base64, argparse, urllib.request, urllib.error
 
 SHOP   = os.environ.get("SHOPIFY_SHOP", "lovepawfect.myshopify.com")
 TOKEN  = os.environ.get("SHOPIFY_ACCESS_TOKEN", "")
@@ -83,6 +83,15 @@ def body_html(row):
         html += f'<p class="grundpreis"><small>Grundpreis: {gp:.2f} € / {gpe}</small></p>'
     return html
 
+def fetch_image(url):
+    """Bild selbst laden (Shopify-src-Fetch wird von Zoodrop geblockt) -> Base64."""
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (lovepawfect-sync)"})
+        with urllib.request.urlopen(req, timeout=45) as r:
+            return base64.b64encode(r.read()).decode()
+    except Exception:
+        return None
+
 # ---------- Shopify REST (gedrosselt) ----------
 def api(method, path, body=None):
     url = f"https://{SHOP}/admin/api/{APIV}/{path}"
@@ -122,6 +131,14 @@ def create_product(row, gross, loc_id):
     ptype, tags = categories(row)
     bestand = int(fnum(row.get("BESTAND")))
     fulfill = row.get("LAGERSTATUS", "").strip().lower() == "fullfillment"
+    art = ((row.get("ARTIKELNUMMER", "") or "img").strip().replace(" ", "-")) or "img"
+    imgs = []
+    for idx, u in enumerate(images(row)[:6]):
+        b64 = fetch_image(u)
+        if b64:
+            imgs.append({"attachment": b64, "filename": f"{art}-{idx+1}.jpg"})
+    if SKIP_NO_IMAGE and not imgs:
+        return None
     payload = {"product": {
         "title": row.get("TITEL", "").strip(),
         "body_html": body_html(row),
@@ -129,7 +146,7 @@ def create_product(row, gross, loc_id):
         "product_type": ptype,
         "tags": ", ".join(tags),
         "status": "active",
-        "images": [{"src": u} for u in images(row)],
+        "images": imgs,
         "variants": [{
             "price": f"{gross:.2f}",
             "sku": row.get("ARTIKELNUMMER", "").strip(),
@@ -222,8 +239,12 @@ def main():
                 update_product(state[ean], row, gross, loc_id, args.mode == "full")
                 st["updated"] += 1
             elif args.mode == "full":
-                state[ean] = create_product(row, gross, loc_id)
-                st["created"] += 1
+                ids = create_product(row, gross, loc_id)
+                if ids is None:
+                    st["noimg"] += 1
+                else:
+                    state[ean] = ids
+                    st["created"] += 1
             # im update-Modus unbekannte EANs ueberspringen (kommen beim naechsten Full rein)
         except Exception as e:
             st["errors"] += 1; log("ERR", ean, str(e)[:160])
