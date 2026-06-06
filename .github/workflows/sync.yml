@@ -1,0 +1,61 @@
+name: Zoodrop Sync
+
+on:
+  schedule:
+    - cron: "0 5 * * *"      # täglich 05:00 UTC -> Update (Preis/Bestand)
+    - cron: "0 3 * * 1"      # montags 03:00 UTC -> Voll-Sync (neue Artikel, Texte, Bilder)
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Sync-Modus"
+        type: choice
+        options: [update, full]
+        default: full
+
+permissions:
+  contents: write
+
+concurrency:
+  group: zoodrop-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Modus bestimmen
+        id: mode
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "mode=${{ github.event.inputs.mode }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "0 3 * * 1" ]; then
+            echo "mode=full" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=update" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Sync ausführen
+        env:
+          SHOPIFY_SHOP: lovepawfect.myshopify.com
+          SHOPIFY_ACCESS_TOKEN: ${{ secrets.SHOPIFY_ACCESS_TOKEN }}
+          SHOPIFY_API_VERSION: "2025-01"
+          PRICE_FACTOR: "1.7"
+          MIN_MARGIN: "2.0"
+          SKIP_NO_IMAGE: "1"
+          STATE_FILE: sync_state.json
+        run: python sync/sync.py --mode "${{ steps.mode.outputs.mode }}"
+
+      - name: State (EAN→ID-Map) sichern
+        run: |
+          git config user.name "lovepawfect-bot"
+          git config user.email "bot@lovepawfect.de"
+          git add sync_state.json || true
+          git commit -m "chore: sync state aktualisiert [skip ci]" || echo "keine Änderung"
+          git push || true
