@@ -126,6 +126,25 @@ def load_state():
 def save_state(st):
     json.dump(st, open(STATE_FILE, "w", encoding="utf-8"), ensure_ascii=False)
 
+def build_state_from_store(state):
+    """Selbstheilung: vorhandene Produkte (barcode=EAN -> ids) aus dem Store laden,
+    damit ein Lauf nie Duplikate anlegt (auch wenn die State-Datei fehlt/abgebrochen wurde)."""
+    since, total = 0, 0
+    while True:
+        data = api("GET", f"products.json?limit=250&since_id={since}&fields=id,variants")
+        prods = data.get("products", [])
+        if not prods:
+            break
+        for p in prods:
+            since = max(since, p["id"])
+            for v in p.get("variants", []):
+                bc = (v.get("barcode") or "").strip()
+                if bc:
+                    state.setdefault(bc, {"p": p["id"], "v": v["id"], "i": v.get("inventory_item_id")})
+            total += 1
+        log(f"  ...{total} vorhandene Produkte gelesen")
+    log(f"State aus Store aufgebaut: {total} Produkte, {len(state)} Barcodes gemappt")
+
 # ---------- Upsert ----------
 def create_product(row, gross, loc_id):
     ptype, tags = categories(row)
@@ -195,7 +214,9 @@ def main():
     log(f"{len(rows)} Zeilen geladen.")
     state = load_state()
     loc_id = None if args.dry_run else get_location_id()
-    if not args.dry_run: log("Location:", loc_id)
+    if not args.dry_run:
+        log("Location:", loc_id)
+        build_state_from_store(state)   # Selbstheilung gegen Duplikate
 
     st = {"avail": 0, "qualified": 0, "noimg": 0, "created": 0, "updated": 0,
           "deactivated": 0, "drop_unavail": 0, "drop_margin": 0, "errors": 0}
