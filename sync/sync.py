@@ -76,17 +76,18 @@ WORLD_SLUG = {"Hund": "hund", "Katze": "katze", "Kleintier": "kleintier", "Vogel
 WORLD_TITLE = {"Hund": "Hundewelt", "Katze": "Katzenwelt", "Kleintier": "Kleintierwelt",
                "Vogel": "Vogelwelt", "Aquaristik": "Aquaristik", "Reptil": "Terraristik",
                "Garten": "Garten & Outdoor"}
-CAT_HANDLE = {"Futter": "futter", "Snacks": "snacks", "Spielzeug": "spielzeug", "Leinen": "leinen",
+CAT_HANDLE = {"Futter": "futter", "Trockenfutter": "trockenfutter", "Nassfutter": "nassfutter",
+              "Snacks": "snacks", "Spielzeug": "spielzeug", "Leinen": "leinen",
               "Halsbänder": "halsbaender", "Geschirre": "geschirre", "Schlafen": "schlafen",
               "Näpfe": "naepfe", "Pflege": "pflege", "Transport": "transport", "Erziehung": "erziehung",
               "Bekleidung": "bekleidung", "Gesundheit": "gesundheit", "Kratzbäume": "kratzbaeume",
               "Katzenklo": "katzenklo", "Einstreu": "einstreu", "Käfige": "kaefige",
               "Zubehör": "zubehoer", "Technik": "technik", "Wasserpflege": "wasserpflege"}
 WORLD_CATS = {
-    "Hund": ["Futter", "Snacks", "Spielzeug", "Leinen", "Halsbänder", "Geschirre", "Schlafen",
-             "Näpfe", "Pflege", "Transport", "Erziehung", "Bekleidung", "Gesundheit"],
-    "Katze": ["Futter", "Snacks", "Spielzeug", "Kratzbäume", "Schlafen", "Katzenklo",
-              "Näpfe", "Pflege", "Transport", "Geschirre", "Gesundheit"],
+    "Hund": ["Futter", "Trockenfutter", "Nassfutter", "Snacks", "Spielzeug", "Leinen", "Halsbänder",
+             "Geschirre", "Schlafen", "Näpfe", "Pflege", "Transport", "Erziehung", "Bekleidung", "Gesundheit"],
+    "Katze": ["Futter", "Trockenfutter", "Nassfutter", "Snacks", "Spielzeug", "Kratzbäume", "Schlafen",
+              "Katzenklo", "Näpfe", "Pflege", "Transport", "Geschirre", "Gesundheit"],
     "Kleintier": ["Futter", "Einstreu", "Käfige", "Zubehör", "Transport", "Pflege"],
     "Vogel": ["Futter", "Käfige", "Zubehör"],
     "Aquaristik": ["Futter", "Wasserpflege", "Technik", "Zubehör"],
