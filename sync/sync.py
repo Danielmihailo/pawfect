@@ -30,29 +30,61 @@ def log(*a): print(*a, flush=True)
 # ---------- Taxonomie ----------
 TIER_MAP = {"Hundewelt":"Hund","Katzenwelt":"Katze","Kleintierwelt":"Kleintier","Vogelwelt":"Vogel",
             "Aquarienwelt":"Aquaristik","Terrarienwelt":"Reptil","Gartenwelt":"Garten"}
-CAT_RULES = [
-    ("trockenfutter",["Trockenfutter","Futter"]),("nassfutter",["Nassfutter","Futter"]),
-    ("ergänz",["Futterergänzung","Futter"]),("erganz",["Futterergänzung","Futter"]),
-    ("leckerl",["Snacks"]),("kausnack",["Snacks"]),("snack",["Snacks"]),("futter",["Futter"]),
-    ("spielzeug",["Spielzeug"]),("kratz",["Kratzbäume"]),
-    ("bett",["Schlafen"]),("körb",["Schlafen"]),("korb",["Schlafen"]),("kissen",["Schlafen"]),
-    ("höhle",["Schlafen"]),("hoehle",["Schlafen"]),("decke",["Schlafen"]),("schlaf",["Schlafen"]),
-    ("leine",["Leinen"]),("halsband",["Halsbänder"]),("halsbänder",["Halsbänder"]),("geschirr",["Geschirre"]),
-    ("transport",["Transport"]),("reise",["Transport"]),("auto",["Transport"]),
-    ("näpfe",["Näpfe"]),("napf",["Näpfe"]),("tränke",["Näpfe"]),("traenke",["Näpfe"]),("brunnen",["Näpfe"]),
-    ("fellpflege",["Pflege"]),("pflege",["Pflege"]),("hygiene",["Pflege"]),("zahn",["Pflege"]),
-    ("kralle",["Pflege"]),("bürste",["Pflege"]),("shampoo",["Pflege"]),
-    ("gesundheit",["Gesundheit"]),("apotheke",["Gesundheit"]),("wurm",["Gesundheit"]),
-    ("floh",["Gesundheit"]),("zecke",["Gesundheit"]),("vitamin",["Gesundheit"]),
-    ("toilette",["Katzenklo"]),("katzenklo",["Katzenklo"]),
-    ("erziehung",["Erziehung"]),("training",["Erziehung"]),("clicker",["Erziehung"]),
-    ("bekleidung",["Bekleidung"]),("mantel",["Bekleidung"]),("pullover",["Bekleidung"]),
-    ("käfig",["Käfige"]),("kaefig",["Käfige"]),("gehege",["Käfige"]),("voliere",["Käfige"]),("stall",["Käfige"]),("nest",["Käfige"]),
-    ("filter",["Technik"]),("pumpe",["Technik"]),("heizer",["Technik"]),("beleuchtung",["Technik"]),("co2",["Technik"]),("technik",["Technik"]),
-    ("wasserpflege",["Wasserpflege"]),("wasseraufbereit",["Wasserpflege"]),("wassertest",["Wasserpflege"]),
-    ("heu",["Einstreu"]),("einstreu",["Einstreu"]),
-    ("ausstattung",["Zubehör"]),("zubehör",["Zubehör"]),("zubehoer",["Zubehör"]),
-]
+# Präzises Mapping der 2. Kategorie-Ebene (Bedarf) – exakt statt Substring über den ganzen Pfad
+L1_MAP = {
+    "hundespielzeug & sport":["Spielzeug"], "katzenspielzeug":["Spielzeug"],
+    "betten & körbe":["Schlafen"], "katzenbetten & katzenkörbe":["Schlafen"],
+    "pflege & gesundheit":["Pflege"], "hygiene & reinigung":["Pflege"],
+    "katzen nassfutter":["Nassfutter","Futter"], "hunde-nassfutter":["Nassfutter","Futter"], "hundefutter barf":["Nassfutter","Futter"],
+    "hundetrockenfutter":["Trockenfutter","Futter"], "katzen trockenfutter":["Trockenfutter","Futter"],
+    "hundesnacks":["Snacks"], "katzensnacks":["Snacks"], "kleintierfutter & snacks":["Futter","Snacks"],
+    "kratzbäume & -möbel":["Kratzbäume"],
+    "hundenäpfe & tränken":["Näpfe"], "katzennäpfe & tränken":["Näpfe"],
+    "reise & transport":["Transport"], "katzentransport & reise":["Transport"], "transport":["Transport"], "unterwegs":["Transport"],
+    "toiletten & katzenstreu":["Katzenklo"],
+    "futterergänzung":["Futterergänzung"], "futterergänzung für katzen":["Futterergänzung"], "picksteine & mineralien":["Futterergänzung"],
+    "erziehung":["Erziehung"], "hundebekleidung":["Bekleidung"],
+    "gartenvogelfutter":["Futter"], "vogelfutter":["Futter"], "zierfischfutter":["Futter"], "teichfischfutter":["Futter"],
+    "koifutter":["Futter"], "futtertabletten":["Futter"], "garnelenfutter":["Futter"], "schildkrötenfutter":["Futter"],
+    "wasserpflege":["Wasserpflege"], "pflanzenpflege":["Wasserpflege"], "teichpflanzenpflege":["Wasserpflege"],
+    "filtertechnik":["Technik"], "aquarium technik":["Technik"], "luftpumpen":["Technik"], "aquarienheizer":["Technik"],
+    "futterhäuser & nistkästen":["Käfige"], "freigehege für kleintiere":["Käfige"], "außenställe":["Käfige"],
+    "arzneimittel":["Gesundheit"], "bachblüten globuli":["Gesundheit"],
+    "ausstattung & zubehör":["Zubehör"], "aquarium zubehör":["Zubehör"], "haus & hof":["Zubehör"], "balkon & garten":["Zubehör"],
+}
+def map_category(lvl1, lvl2):
+    l1=lvl1.strip().lower(); l2=(lvl2 or "").strip().lower()
+    # Leinen/Halsbänder/Geschirre über die 3. Ebene aufschlüsseln
+    if "halsbänder & leinen" in l1 or ("halsband" in l1 and "geschirr" in l1):
+        if "geschirr" in l2: return ["Geschirre"]
+        if "leine" in l2: return ["Leinen"]
+        if "halsband" in l2: return ["Halsbänder"]
+        return ["Leinen","Halsbänder","Geschirre"] if "geschirr" in l1 else ["Leinen","Halsbänder"]
+    if l1 in L1_MAP: return list(L1_MAP[l1])
+    # konservativer Fallback NUR auf der Kategorie-Ebene (nicht ganzer Pfad)
+    if "napf" in l1 or "tränke" in l1: return ["Näpfe"]
+    if "trockenfutter" in l1: return ["Trockenfutter","Futter"]
+    if "nassfutter" in l1: return ["Nassfutter","Futter"]
+    if "snack" in l1: return ["Snacks"]
+    if "ergänz" in l1: return ["Futterergänzung"]
+    if "futter" in l1: return ["Futter"]
+    if "spielzeug" in l1: return ["Spielzeug"]
+    if "kratz" in l1: return ["Kratzbäume"]
+    if "bett" in l1 or "körb" in l1 or "schlaf" in l1: return ["Schlafen"]
+    if "streu" in l1 or "toilette" in l1: return ["Katzenklo"]
+    if "leine" in l1: return ["Leinen"]
+    if "halsband" in l1: return ["Halsbänder"]
+    if "geschirr" in l1: return ["Geschirre"]
+    if "transport" in l1 or "reise" in l1: return ["Transport"]
+    if "pflege" in l1 or "hygiene" in l1: return ["Pflege"]
+    if "gesundheit" in l1 or "arznei" in l1: return ["Gesundheit"]
+    if "bekleidung" in l1: return ["Bekleidung"]
+    if "käfig" in l1 or "gehege" in l1 or "stall" in l1 or "nistkast" in l1: return ["Käfige"]
+    if "technik" in l1 or "filter" in l1 or "pumpe" in l1 or "heizer" in l1: return ["Technik"]
+    if "wasserpflege" in l1: return ["Wasserpflege"]
+    if "heu" in l1 or "einstreu" in l1: return ["Einstreu"]
+    if "erziehung" in l1 or "training" in l1: return ["Erziehung"]
+    return ["Zubehör"]
 WORLD_HANDLE={"Hund":"hundewelt","Katze":"katzenwelt","Kleintier":"kleintierwelt","Vogel":"vogelwelt","Aquaristik":"aquarienwelt","Reptil":"terrarienwelt","Garten":"gartenwelt"}
 WORLD_SLUG={"Hund":"hund","Katze":"katze","Kleintier":"kleintier","Vogel":"vogel","Aquaristik":"aquaristik","Reptil":"reptil","Garten":"garten"}
 WORLD_TITLE={"Hund":"Hundewelt","Katze":"Katzenwelt","Kleintier":"Kleintierwelt","Vogel":"Vogelwelt","Aquaristik":"Aquaristik","Reptil":"Terraristik","Garten":"Garten & Outdoor"}
@@ -105,23 +137,23 @@ def compute_gross(ek, uvp, vat):
     return round(g,2)
 
 def categories(row):
-    raw=row.get("KATEGORIE","") or ""; low=raw.lower()
-    tiers=[]; ptype=""
+    raw=row.get("KATEGORIE","") or ""
+    tiers=[]; ptype=""; cats=[]
     for p in [x for x in raw.split("|") if x.strip()]:
-        levels=[l.strip() for l in p.split(">") if l.strip()]
-        if not levels: continue
-        if not ptype: ptype=levels[0]
-        t=TIER_MAP.get(levels[0])
+        L=[l.strip() for l in p.split(">") if l.strip()]
+        if not L: continue
+        if not ptype: ptype=L[0]
+        t=TIER_MAP.get(L[0])
         if t and t not in tiers: tiers.append(t)
-    cats=[]
-    for kw,ts in CAT_RULES:
-        if kw in low:
-            for t in ts:
-                if t not in cats: cats.append(t)
-    if "streu" in low: cats.append("Katzenklo" if "Katze" in tiers else "Einstreu")
+        if len(L)>=2:
+            lvl2=L[2] if len(L)>=3 else ""
+            for c in map_category(L[1], lvl2):
+                if c not in cats: cats.append(c)
+    # Kleintier-Streu ist Einstreu, nicht Katzenklo
+    cats=["Einstreu" if (c=="Katzenklo" and "Katze" not in tiers) else c for c in cats]
     tags=[]
     for t in tiers+cats:
-        if t not in tags: tags.append(t)
+        if t and t not in tags: tags.append(t)
     vendor=row.get("HERSTELLER","").strip()
     if vendor and vendor not in tags: tags.append(vendor)
     return ptype, tags
