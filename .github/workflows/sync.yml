@@ -9,7 +9,7 @@ on:
       mode:
         description: "Sync-Modus"
         type: choice
-        options: [update, full]
+        options: [update, full, retag, collections]
         default: full
 
 permissions:
