@@ -111,8 +111,14 @@ def load_rows(mode, local):
     url = UPDATE_URL if mode=="update" else FULL_URL
     log("Lade Feed:", url)
     req=urllib.request.Request(url, headers={"User-Agent":"lovepawfect-sync/1.0"})
-    with urllib.request.urlopen(req, timeout=180) as r:
-        data=r.read().decode("utf-8", errors="replace")
+    data=None
+    for attempt in range(5):
+        try:
+            with urllib.request.urlopen(req, timeout=240) as r:
+                data=r.read().decode("utf-8", errors="replace"); break
+        except Exception as e:
+            log("Feed-Download Fehler, retry", attempt+1, str(e)[:100]); time.sleep(5*(attempt+1))
+    if data is None: raise RuntimeError("Feed-Download fehlgeschlagen")
     return list(csv.DictReader(io.StringIO(data), delimiter=";", quotechar='"'))
 
 def group_rows(rows):
@@ -215,6 +221,9 @@ def api(method, path, body=None):
             if e.code==429: time.sleep(2.0*(attempt+1)); continue
             if e.code>=500: time.sleep(1.5*(attempt+1)); continue
             log("HTTP",e.code,method,path,e.read().decode()[:300]); raise
+        except Exception as e:                       # Timeout/Verbindungsabbruch -> retry mit Backoff
+            if attempt>=6: log("NET",method,path,str(e)[:120]); raise
+            time.sleep(2.0*(attempt+1)); continue
     raise RuntimeError(f"API failed: {method} {path}")
 
 def get_location_id():
