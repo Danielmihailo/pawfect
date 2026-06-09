@@ -51,6 +51,7 @@ L1_MAP = {
     "futterhäuser & nistkästen":["Käfige"], "freigehege für kleintiere":["Käfige"], "außenställe":["Käfige"],
     "arzneimittel":["Gesundheit"], "bachblüten globuli":["Gesundheit"],
     "ausstattung & zubehör":["Zubehör"], "aquarium zubehör":["Zubehör"], "haus & hof":["Zubehör"], "balkon & garten":["Zubehör"],
+    "futterautomaten":["Näpfe"], "futterspender & tränken":["Näpfe"], "trinkbrunnen":["Näpfe"],
 }
 def map_category(lvl1, lvl2):
     l1=lvl1.strip().lower(); l2=(lvl2 or "").strip().lower()
@@ -62,7 +63,7 @@ def map_category(lvl1, lvl2):
         return ["Leinen","Halsbänder","Geschirre"] if "geschirr" in l1 else ["Leinen","Halsbänder"]
     if l1 in L1_MAP: return list(L1_MAP[l1])
     # konservativer Fallback NUR auf der Kategorie-Ebene (nicht ganzer Pfad)
-    if "napf" in l1 or "tränke" in l1: return ["Näpfe"]
+    if "napf" in l1 or "näpfe" in l1 or "tränke" in l1 or "automat" in l1 or "spender" in l1 or "brunnen" in l1: return ["Näpfe"]
     if "trockenfutter" in l1: return ["Trockenfutter","Futter"]
     if "nassfutter" in l1: return ["Nassfutter","Futter"]
     if "snack" in l1: return ["Snacks"]
@@ -88,10 +89,10 @@ def map_category(lvl1, lvl2):
 WORLD_HANDLE={"Hund":"hundewelt","Katze":"katzenwelt","Kleintier":"kleintierwelt","Vogel":"vogelwelt","Aquaristik":"aquarienwelt","Reptil":"terrarienwelt","Garten":"gartenwelt"}
 WORLD_SLUG={"Hund":"hund","Katze":"katze","Kleintier":"kleintier","Vogel":"vogel","Aquaristik":"aquaristik","Reptil":"reptil","Garten":"garten"}
 WORLD_TITLE={"Hund":"Hundewelt","Katze":"Katzenwelt","Kleintier":"Kleintierwelt","Vogel":"Vogelwelt","Aquaristik":"Aquaristik","Reptil":"Terraristik","Garten":"Garten & Outdoor"}
-CAT_HANDLE={"Futter":"futter","Trockenfutter":"trockenfutter","Nassfutter":"nassfutter","Snacks":"snacks","Spielzeug":"spielzeug","Leinen":"leinen","Halsbänder":"halsbaender","Geschirre":"geschirre","Schlafen":"schlafen","Näpfe":"naepfe","Pflege":"pflege","Transport":"transport","Erziehung":"erziehung","Bekleidung":"bekleidung","Gesundheit":"gesundheit","Kratzbäume":"kratzbaeume","Katzenklo":"katzenklo","Einstreu":"einstreu","Käfige":"kaefige","Zubehör":"zubehoer","Technik":"technik","Wasserpflege":"wasserpflege"}
+CAT_HANDLE={"Futter":"futter","Trockenfutter":"trockenfutter","Nassfutter":"nassfutter","Futterergänzung":"futterergaenzung","Snacks":"snacks","Spielzeug":"spielzeug","Leinen":"leinen","Halsbänder":"halsbaender","Geschirre":"geschirre","Schlafen":"schlafen","Näpfe":"naepfe","Pflege":"pflege","Transport":"transport","Erziehung":"erziehung","Bekleidung":"bekleidung","Gesundheit":"gesundheit","Kratzbäume":"kratzbaeume","Katzenklo":"katzenklo","Einstreu":"einstreu","Käfige":"kaefige","Zubehör":"zubehoer","Technik":"technik","Wasserpflege":"wasserpflege"}
 WORLD_CATS={
-    "Hund":["Futter","Trockenfutter","Nassfutter","Snacks","Spielzeug","Leinen","Halsbänder","Geschirre","Schlafen","Näpfe","Pflege","Transport","Erziehung","Bekleidung","Gesundheit"],
-    "Katze":["Futter","Trockenfutter","Nassfutter","Snacks","Spielzeug","Kratzbäume","Schlafen","Katzenklo","Näpfe","Pflege","Transport","Geschirre","Gesundheit"],
+    "Hund":["Futter","Trockenfutter","Nassfutter","Futterergänzung","Snacks","Spielzeug","Leinen","Halsbänder","Geschirre","Schlafen","Näpfe","Pflege","Transport","Erziehung","Bekleidung","Gesundheit"],
+    "Katze":["Futter","Trockenfutter","Nassfutter","Futterergänzung","Snacks","Spielzeug","Kratzbäume","Schlafen","Katzenklo","Näpfe","Pflege","Transport","Geschirre","Gesundheit"],
     "Kleintier":["Futter","Einstreu","Käfige","Zubehör","Transport","Pflege"],
     "Vogel":["Futter","Käfige","Zubehör"],"Aquaristik":["Futter","Wasserpflege","Technik","Zubehör"],
     "Reptil":["Zubehör","Technik"],"Garten":[],
