@@ -14,12 +14,13 @@ Preisregel: Brutto = EK*FACTOR, gedeckelt UVP-1, Marge>=MIN_MARGIN, Charm x,99.
 Tags: Tier + Bedarf + Marke. Bildlose Gruppen uebersprungen.
 """
 import os, sys, csv, io, json, time, base64, argparse, urllib.request, urllib.error
+from concurrent.futures import ThreadPoolExecutor
 
 SHOP   = os.environ.get("SHOPIFY_SHOP", "lovepawfect.myshopify.com")
 TOKEN  = os.environ.get("SHOPIFY_ACCESS_TOKEN", "")
 APIV   = os.environ.get("SHOPIFY_API_VERSION", "2025-01")
 FACTOR = float(os.environ.get("PRICE_FACTOR", "1.7"))
-MIN_MARGIN = float(os.environ.get("MIN_MARGIN", "2.0"))
+MIN_MARGIN = float(os.environ.get("MIN_MARGIN", "0.30"))
 STATE_FILE = os.environ.get("STATE_FILE", "sync_state.json")
 SKIP_NO_IMAGE = os.environ.get("SKIP_NO_IMAGE", "1") == "1"
 FULL_URL   = "https://www.zoodrop.de/csv/download/zoodrop_utf8.csv"
@@ -129,11 +130,12 @@ def is_available(row):
 
 def compute_gross(ek, uvp, vat):
     if ek<=0: return None
-    g=ek*FACTOR; cap=uvp-1.0 if uvp and uvp>0 else None
-    if cap is not None: g=min(g,cap)
-    if g<=0: return None
+    g=ek*FACTOR
+    cap=uvp-0.01 if uvp and uvp>0 else None    # nie ÜBER UVP, aber nicht künstlich auf UVP-1 drücken
+    if cap is not None and g>cap: g=cap         # nur kappen, wenn wir drüber liegen
+    if g<=ek: return None                       # niemals mit Verlust
     if (g/(1.0+vat/100.0))-ek < MIN_MARGIN: return None
-    charm=float(int(g))+0.99
+    charm=float(int(g))+0.99                    # x,99 wenn es passt (Marge + unter UVP)
     if charm>ek and (cap is None or charm<=cap) and abs(charm-g)<=1.0: g=charm
     return round(g,2)
 
@@ -255,14 +257,15 @@ def qualifying(group):
 def create_grouped(group, loc_id):
     q=qualifying(group)
     if not q: return "drop", None
+    if len(q)>100: q=q[:100]                 # Shopify-Varianten-Limit
     rows=[r for r,_ in q]
     imgs_urls=group_images(rows)
     if SKIP_NO_IMAGE and not imgs_urls: return "noimg", None
     art0=((rows[0].get("ARTIKELNUMMER","") or "img").strip().replace(" ","-")) or "img"
     imgs=[]
-    for idx,u in enumerate(imgs_urls):
-        b=fetch_image(u)
-        if b: imgs.append({"attachment":b,"filename":f"{art0}-{idx+1}.jpg"})
+    with ThreadPoolExecutor(max_workers=5) as ex:           # Bilder parallel laden (Speed)
+        for idx,b in enumerate(ex.map(fetch_image, imgs_urls)):
+            if b: imgs.append({"attachment":b,"filename":f"{art0}-{idx+1}.jpg"})
     if SKIP_NO_IMAGE and not imgs: return "noimg", None
     rep=rows[0]; ptype,tags=categories(rep); multi=len(q)>1
     labels,ptitle=variant_labels([(r.get("TITEL") or "").strip() for r in rows])
@@ -275,7 +278,7 @@ def create_grouped(group, loc_id):
         variants.append(var)
     payload={"product":{"title":ptitle,"body_html":body_html(rep),"vendor":rep.get("HERSTELLER","").strip(),
         "product_type":ptype,"tags":", ".join(tags),"status":"active","images":imgs,"variants":variants}}
-    if multi: payload["product"]["options"]=["Variante"]
+    if multi: payload["product"]["options"]=[{"name":"Variante"}]
     p=api("POST","products.json",payload)["product"]
     bestand={ (r.get("EAN","").strip()): int(fnum(r.get("BESTAND"))) for r,_ in q }
     vmap={}

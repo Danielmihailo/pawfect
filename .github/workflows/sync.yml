@@ -1,9 +1,10 @@
 name: Zoodrop Sync
 
 on:
-  schedule:
-    - cron: "0 5 * * *"      # täglich 05:00 UTC -> Update (Preis/Bestand)
-    - cron: "0 3 * * 1"      # montags 03:00 UTC -> Voll-Sync (neue Artikel, Texte, Bilder)
+  # Zeitplan AUS während Neuaufbau (Wipe + Full) – danach reaktivieren!
+  # schedule:
+  #   - cron: "0 5 * * *"
+  #   - cron: "0 3 * * 1"
   workflow_dispatch:
     inputs:
       mode:
