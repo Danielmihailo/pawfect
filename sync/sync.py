@@ -273,19 +273,17 @@ def create_grouped(group, loc_id):
     for idx,(r,g) in enumerate(q):
         fulfill=r.get("LAGERSTATUS","").strip().lower()=="fullfillment"
         var={"price":f"{g:.2f}","sku":r.get("ARTIKELNUMMER","").strip(),"barcode":r.get("EAN","").strip(),
-             "inventory_management":"shopify","inventory_policy":"continue" if fulfill else "deny","taxable":True}
+             "inventory_management":"shopify","inventory_policy":"continue" if fulfill else "deny","taxable":True,
+             "inventory_quantity":max(int(fnum(r.get("BESTAND"))),0)}   # Bestand direkt beim Create (spart Inventar-Calls)
         if multi: var["option1"]=labels[idx]
         variants.append(var)
     payload={"product":{"title":ptitle,"body_html":body_html(rep),"vendor":rep.get("HERSTELLER","").strip(),
         "product_type":ptype,"tags":", ".join(tags),"status":"active","images":imgs,"variants":variants}}
     if multi: payload["product"]["options"]=[{"name":"Variante"}]
     p=api("POST","products.json",payload)["product"]
-    bestand={ (r.get("EAN","").strip()): int(fnum(r.get("BESTAND"))) for r,_ in q }
     vmap={}
     for var in p["variants"]:
         bc=(var.get("barcode") or "").strip()
-        if loc_id and var.get("inventory_item_id"):
-            api("POST","inventory_levels/set.json",{"location_id":loc_id,"inventory_item_id":var["inventory_item_id"],"available":max(bestand.get(bc,0),0)})
         vmap[bc]={"v":var["id"],"i":var.get("inventory_item_id")}
     return "created", {"p":p["id"],"variants":vmap}
 
