@@ -10,7 +10,7 @@ on:
       mode:
         description: "Sync-Modus"
         type: choice
-        options: [update, full, retag, collections, wipe]
+        options: [update, full, retag, collections, audit, wipe]
         default: full
 
 permissions:
@@ -48,7 +48,7 @@ jobs:
           SHOPIFY_ACCESS_TOKEN: ${{ secrets.SHOPIFY_ACCESS_TOKEN }}
           SHOPIFY_API_VERSION: "2025-01"
           PRICE_FACTOR: "1.7"
-          MIN_MARGIN: "2.0"
+          MIN_MARGIN: "0.30"
           SKIP_NO_IMAGE: "1"
           STATE_FILE: sync_state.json
         run: python sync/sync.py --mode "${{ steps.mode.outputs.mode }}"

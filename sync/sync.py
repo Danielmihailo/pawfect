@@ -13,8 +13,9 @@ Variantenname = Teil des TITEL nach dem gemeinsamen Praefix. Einzel-Artikel = 1 
 Preisregel: Brutto = EK*FACTOR, gedeckelt UVP-1, Marge>=MIN_MARGIN, Charm x,99.
 Tags: Tier + Bedarf + Marke. Bildlose Gruppen uebersprungen.
 """
-import os, sys, csv, io, json, time, base64, argparse, urllib.request, urllib.error
+import os, sys, csv, io, json, time, base64, argparse, collections, urllib.request, urllib.error
 from concurrent.futures import ThreadPoolExecutor
+csv.field_size_limit(10**8)
 
 SHOP   = os.environ.get("SHOPIFY_SHOP", "lovepawfect.myshopify.com")
 TOKEN  = os.environ.get("SHOPIFY_ACCESS_TOKEN", "")
@@ -207,6 +208,7 @@ def variant_labels(titles):
     return out, ptitle
 
 # ---------- Shopify REST ----------
+API_SEEN=[]
 def api(method, path, body=None):
     url=f"https://{SHOP}/admin/api/{APIV}/{path}"
     data=json.dumps(body).encode() if body is not None else None
@@ -214,6 +216,7 @@ def api(method, path, body=None):
     for attempt in range(7):
         try:
             with urllib.request.urlopen(req, timeout=120) as r:
+                if not API_SEEN: API_SEEN.append(r.headers.get("X-Shopify-API-Version")); log("API-Version ausgeliefert:", API_SEEN[0])
                 used,cap=(int(x) for x in r.headers.get("X-Shopify-Shop-Api-Call-Limit","0/40").split("/"))
                 if used>cap*0.7: time.sleep(0.6)
                 txt=r.read().decode(); return json.loads(txt) if txt else {}
@@ -343,10 +346,74 @@ def wipe_all():
     except OSError: pass
     log(f"Wipe fertig: {total} Produkte geloescht, State geleert.")
 
+# ---------- Audit (nur lesend) ----------
+def audit(rows):
+    shop=api("GET","shop.json").get("shop",{})
+    keys=["name","domain","plan_name","plan_display_name","password_enabled","taxes_included","tax_shipping","county_taxes",
+          "country_code","currency","primary_locale","setup_required","eligible_for_payments","email","customer_email"]
+    log("AUDIT shop", json.dumps({k:shop.get(k) for k in keys}, ensure_ascii=False))
+    for path,label in (("shipping_zones.json","versand"),("policies.json","rechtstexte")):
+        try:
+            data=api("GET",path)
+            if label=="versand":
+                for z in data.get("shipping_zones",[]):
+                    cc=",".join(c.get("code","") for c in z.get("countries",[]))
+                    for r in z.get("price_based_shipping_rates",[]):
+                        log("AUDIT versand", z.get("name"), cc, "| preis:", r.get("name"), r.get("price"), "| bestellwert", r.get("min_order_subtotal"), "-", r.get("max_order_subtotal"))
+                    for r in z.get("weight_based_shipping_rates",[]):
+                        log("AUDIT versand", z.get("name"), cc, "| gewicht:", r.get("name"), r.get("price"), "|", r.get("weight_low"), "-", r.get("weight_high"))
+                    for r in z.get("carrier_shipping_rate_providers",[]):
+                        log("AUDIT versand", z.get("name"), cc, "| carrier", r.get("carrier_service_id"))
+                if not data.get("shipping_zones"): log("AUDIT versand KEINE ZONEN")
+            else:
+                for p in data.get("policies",[]): log("AUDIT rechtstext", p.get("title"), "| Zeichen:", len(p.get("body") or ""), "|", p.get("url"))
+                if not data.get("policies"): log("AUDIT rechtstexte KEINE")
+        except Exception as e: log("AUDIT", label, "FEHLER", str(e)[:200])
+    feed={(r.get("EAN") or "").strip(): r for r in rows if (r.get("EAN") or "").strip()}
+    st=collections.Counter(); vendors=collections.Counter(); ex=collections.defaultdict(list); store_bc=set()
+    since=0
+    while True:
+        prods=api("GET",f"products.json?limit=250&since_id={since}&fields=id,title,status,vendor,images,variants,body_html").get("products",[])
+        if not prods: break
+        for p in prods:
+            since=max(since,p["id"]); st["produkte"]+=1; st["status_"+str(p.get("status"))]+=1
+            vendors[p.get("vendor") or "(leer)"]+=1
+            body=p.get("body_html") or ""
+            if not p.get("images"): st["ohne_bild"]+=1; ex["ohne_bild"].append(p["title"][:50])
+            if 'class="grundpreis"' in body: st["alter_grundpreis_im_text"]+=1
+            if not body.strip(): st["ohne_beschreibung"]+=1
+            for v in p.get("variants",[]):
+                st["varianten"]+=1
+                bc=(v.get("barcode") or "").strip(); price=float(v.get("price") or 0); qty=int(v.get("inventory_quantity") or 0)
+                kaufbar=qty>0 or v.get("inventory_policy")=="continue"
+                if not bc: st["var_ohne_ean"]+=1; continue
+                store_bc.add(bc); r=feed.get(bc)
+                if r is None:
+                    st["var_nicht_mehr_im_feed"]+=1; st["var_nicht_mehr_im_feed_aber_kaufbar"]+=kaufbar; continue
+                if not is_available(r):
+                    st["var_bei_zoodrop_nicht_verfuegbar"]+=1; st["var_nicht_verfuegbar_aber_kaufbar"]+=kaufbar; continue
+                vat=fnum(r.get("MWST") or "19"); ek=fnum(r.get("VERKAUFSPREIS"))
+                g=compute_gross(ek,fnum(r.get("UVP")),vat)
+                if g is None:
+                    st["var_jetzt_unrentabel"]+=1
+                    if price/(1+vat/100)<=ek: st["var_verlust_bei_aktuellem_preis"]+=1; ex["verlust"].append(f'{p["title"][:40]} {price} (EK {ek})')
+                    continue
+                if abs(g-price)>0.005: st["var_preis_veraltet"]+=1
+                if int(fnum(r.get("BESTAND")))!=qty and v.get("inventory_policy")!="continue": st["var_bestand_veraltet"]+=1
+    newq=0
+    for key,group in group_rows(rows):
+        if any((r.get("EAN") or "").strip() in store_bc for r in group): continue
+        q=qualifying(group)
+        if q and group_images([r for r,_ in q]): newq+=1
+    st["neue_produkte_im_feed"]=newq
+    for k in sorted(st): log("AUDIT produkte", k, st[k])
+    log("AUDIT hersteller", len(vendors), json.dumps(vendors.most_common(70), ensure_ascii=False))
+    for k,v in ex.items(): log("AUDIT beispiele", k, json.dumps(v[:10], ensure_ascii=False))
+
 # ---------- Main ----------
 def main():
     ap=argparse.ArgumentParser()
-    ap.add_argument("--mode",choices=["full","update","retag","collections","wipe"],default="full")
+    ap.add_argument("--mode",choices=["full","update","retag","collections","wipe","audit"],default="full")
     ap.add_argument("--dry-run",action="store_true"); ap.add_argument("--limit",type=int,default=0); ap.add_argument("--local",default="")
     args=ap.parse_args()
 
@@ -362,6 +429,7 @@ def main():
         wipe_all(); return
 
     rows=load_rows(args.mode,args.local); log(f"{len(rows)} Zeilen geladen.")
+    if args.mode=="audit": audit(rows); return
     state={}   # immer frisch aus dem Store (verhindert veraltete Zuordnungen nach Wipe)
     loc_id=None if args.dry_run else get_location_id()
     if not args.dry_run: log("Location:",loc_id); build_state_from_store(state)
