@@ -1,33 +1,47 @@
 #!/usr/bin/env python3
 """
 lovepawfect <- Zoodrop Sync  (Varianten gruppiert nach SUCHNUMMER)
-  --mode full        : zoodrop_utf8.csv -> Produkte (mit Varianten) anlegen/aktualisieren, inkl. Bilder
-  --mode update      : update_utf8.csv  -> nur Preis/Bestand/Policy je Variante (schnell, taeglich)
-  --mode retag       : zoodrop_utf8.csv -> nur Tags/Produkttyp je Produkt
+  --mode full        : Gesamtfeed -> neue Produkte anlegen (inkl. Bilder) und alle bestehenden komplett pflegen:
+                       Preis, Bestand, Status, Tags, Beschreibung (+ Futterangaben), Hersteller, Grundpreis
+  --mode update      : Gesamtfeed -> nur Preis, Bestand und Verkaufbarkeit, nur Abweichungen (schnell)
+  --mode audit       : nur lesen: Shop-Einstellungen, Versand, Rechtstexte, Datenlage
+  --mode retag       : nur Tags/Produkttyp
   --mode collections : Smart Collections (Welten + Kategorien) idempotent
   --mode wipe        : ALLE Produkte loeschen (Neuaufbau)
   --dry-run / --limit N / --local PATH
 
 Gruppierung: alle Zeilen mit gleicher SUCHNUMMER = EIN Produkt; jede Zeile (EAN) = eine Variante.
-Variantenname = Teil des TITEL nach dem gemeinsamen Praefix. Einzel-Artikel = 1 Variante ohne Optionen.
-Preisregel: Brutto = EK*FACTOR, gedeckelt UVP-1, Marge>=MIN_MARGIN, Charm x,99.
-Tags: Tier + Bedarf + Marke. Bildlose Gruppen uebersprungen.
+Preisregel: Verkaufspreis = EK*FACTOR, gedeckelt auf UVP-0,01, Marge >= MIN_MARGIN, Charm x,99.
+Betreiber ist Kleinunternehmer (§ 19 UStG): keine USt auf den Verkauf, aber auch kein Vorsteuerabzug.
+Die Margenprüfung (Preis/(1+MwSt) - EK) entspricht Preis - EK brutto >= MIN_MARGIN*(1+MwSt), ist also vorsichtig genug.
+Verkaufbar: Im Verkauf und (Bestand > 0 oder Fullfillment) und rentabel. Ausverkauft (Im Verkauf, Bestand 0)
+bleibt aktiv mit Bestand 0; ausgelistet, unrentabel oder nicht mehr im Feed -> Bestand 0 und Entwurf.
+Pflichtangaben: ohne belegte Herstellerangaben (GPSR, data/hersteller.json) oder ohne Futterangaben
+(Beschreibung bzw. data/futter.json) bleibt ein Produkt Entwurf mit Tag lp-gesperrt.
 """
-import os, sys, csv, io, json, time, base64, argparse, collections, urllib.request, urllib.error
+import os, sys, csv, io, re, json, time, base64, argparse, collections, html as htmlmod, urllib.request, urllib.error
 from concurrent.futures import ThreadPoolExecutor
 csv.field_size_limit(10**8)
 
 SHOP   = os.environ.get("SHOPIFY_SHOP", "lovepawfect.myshopify.com")
 TOKEN  = os.environ.get("SHOPIFY_ACCESS_TOKEN", "")
-APIV   = os.environ.get("SHOPIFY_API_VERSION", "2025-01")
+APIV   = os.environ.get("SHOPIFY_API_VERSION", "2026-01")
 FACTOR = float(os.environ.get("PRICE_FACTOR", "1.7"))
 MIN_MARGIN = float(os.environ.get("MIN_MARGIN", "0.30"))
 STATE_FILE = os.environ.get("STATE_FILE", "sync_state.json")
 SKIP_NO_IMAGE = os.environ.get("SKIP_NO_IMAGE", "1") == "1"
 FULL_URL   = "https://www.zoodrop.de/csv/download/zoodrop_utf8.csv"
-UPDATE_URL = "https://www.zoodrop.de/csv/download/update_utf8.csv"
+DATA_DIR   = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data")
+SYNC_TAG, GESPERRT_TAG, AUS_TAG = "zoodrop", "lp-gesperrt", "lp-aus"
+FOOD = {"Futter", "Trockenfutter", "Nassfutter", "Snacks", "Futterergänzung"}
 
 def log(*a): print(*a, flush=True)
+
+def load_data(name):
+    p = os.path.join(DATA_DIR, name)
+    return json.load(open(p, encoding="utf-8")) if os.path.exists(p) else None
+HERSTELLER = load_data("hersteller.json")   # Hersteller im Feed -> GPSR-Angaben ("__titel__": Titel -> Angaben)
+FUTTER = load_data("futter.json")           # SUCHNUMMER -> Futterangaben
 
 # ---------- Taxonomie ----------
 TIER_MAP = {"Hundewelt":"Hund","Katzenwelt":"Katze","Kleintierwelt":"Kleintier","Vogelwelt":"Vogel",
@@ -57,14 +71,12 @@ L1_MAP = {
 }
 def map_category(lvl1, lvl2):
     l1=lvl1.strip().lower(); l2=(lvl2 or "").strip().lower()
-    # Leinen/Halsbänder/Geschirre über die 3. Ebene aufschlüsseln
     if "halsbänder & leinen" in l1 or ("halsband" in l1 and "geschirr" in l1):
         if "geschirr" in l2: return ["Geschirre"]
         if "leine" in l2: return ["Leinen"]
         if "halsband" in l2: return ["Halsbänder"]
         return ["Leinen","Halsbänder","Geschirre"] if "geschirr" in l1 else ["Leinen","Halsbänder"]
     if l1 in L1_MAP: return list(L1_MAP[l1])
-    # konservativer Fallback NUR auf der Kategorie-Ebene (nicht ganzer Pfad)
     if "napf" in l1 or "näpfe" in l1 or "tränke" in l1 or "automat" in l1 or "spender" in l1 or "brunnen" in l1: return ["Näpfe"]
     if "trockenfutter" in l1: return ["Trockenfutter","Futter"]
     if "nassfutter" in l1: return ["Nassfutter","Futter"]
@@ -106,12 +118,11 @@ def fnum(s):
     try: return float(s)
     except ValueError: return 0.0
 
-def load_rows(mode, local):
+def load_rows(local):
     if local:
         return list(csv.DictReader(open(local, encoding="utf-8", errors="replace"), delimiter=";", quotechar='"'))
-    url = UPDATE_URL if mode=="update" else FULL_URL
-    log("Lade Feed:", url)
-    req=urllib.request.Request(url, headers={"User-Agent":"lovepawfect-sync/1.0"})
+    log("Lade Feed:", FULL_URL)
+    req=urllib.request.Request(FULL_URL, headers={"User-Agent":"lovepawfect-sync/1.0"})
     data=None
     for attempt in range(5):
         try:
@@ -122,10 +133,12 @@ def load_rows(mode, local):
     if data is None: raise RuntimeError("Feed-Download fehlgeschlagen")
     return list(csv.DictReader(io.StringIO(data), delimiter=";", quotechar='"'))
 
+def gkey(r): return (r.get("SUCHNUMMER") or "").strip() or (r.get("ARTIKELNUMMER") or "").strip() or (r.get("EAN") or "").strip()
+
 def group_rows(rows):
     groups={}; order=[]
     for r in rows:
-        key=(r.get("SUCHNUMMER") or "").strip() or (r.get("ARTIKELNUMMER") or "").strip() or (r.get("EAN") or "").strip()
+        key=gkey(r)
         if not key: continue
         if key not in groups: groups[key]=[]; order.append(key)
         groups[key].append(r)
@@ -138,13 +151,24 @@ def is_available(row):
 def compute_gross(ek, uvp, vat):
     if ek<=0: return None
     g=ek*FACTOR
-    cap=uvp-0.01 if uvp and uvp>0 else None    # nie ÜBER UVP, aber nicht künstlich auf UVP-1 drücken
-    if cap is not None and g>cap: g=cap         # nur kappen, wenn wir drüber liegen
+    cap=uvp-0.01 if uvp and uvp>0 else None    # nie ÜBER UVP, aber nicht künstlich drücken
+    if cap is not None and g>cap: g=cap
     if g<=ek: return None                       # niemals mit Verlust
     if (g/(1.0+vat/100.0))-ek < MIN_MARGIN: return None
-    charm=float(int(g))+0.99                    # x,99 wenn es passt (Marge + unter UVP)
+    charm=float(int(g))+0.99
     if charm>ek and (cap is None or charm<=cap) and abs(charm-g)<=1.0: g=charm
     return round(g,2)
+
+def row_price(r): return compute_gross(fnum(r.get("VERKAUFSPREIS")), fnum(r.get("UVP")), fnum(r.get("MWST") or "19"))
+
+def variant_target(r):
+    """-> (art, preis, bestand, policy); art: SELL verkaufbar, OOS ausverkauft (bleibt aktiv), DEAD weg"""
+    if r is None: return ("DEAD", None, 0, "deny")
+    g=row_price(r)
+    if r.get("VERKAUFSSTATUS","").strip()!="Im Verkauf" or g is None: return ("DEAD", None, 0, "deny")
+    qty=max(int(fnum(r.get("BESTAND"))),0)
+    if r.get("LAGERSTATUS","").strip().lower()=="fullfillment": return ("SELL", g, qty, "continue")
+    return ("SELL", g, qty, "deny") if qty>0 else ("OOS", g, 0, "deny")
 
 def categories(row):
     raw=row.get("KATEGORIE","") or ""
@@ -159,14 +183,89 @@ def categories(row):
             lvl2=L[2] if len(L)>=3 else ""
             for c in map_category(L[1], lvl2):
                 if c not in cats: cats.append(c)
-    # Kleintier-Streu ist Einstreu, nicht Katzenklo
     cats=["Einstreu" if (c=="Katzenklo" and "Katze" not in tiers) else c for c in cats]
     tags=[]
     for t in tiers+cats:
         if t and t not in tags: tags.append(t)
-    vendor=row.get("HERSTELLER","").strip()
+    vendor=vendor_of(row)
     if vendor and vendor not in tags: tags.append(vendor)
     return ptype, tags
+
+# ---------- Pflichtangaben ----------
+def hersteller_entry(row):
+    if HERSTELLER is None: return None
+    v=(row.get("HERSTELLER") or "").strip()
+    if v: return HERSTELLER.get(v)
+    return (HERSTELLER.get("__titel__") or {}).get((row.get("TITEL") or "").strip())
+
+def vendor_of(row):
+    v=(row.get("HERSTELLER") or "").strip()
+    if v: return v
+    e=hersteller_entry(row)
+    return (e or {}).get("marke","") or ""
+
+def gpsr_ok(row):
+    if HERSTELLER is None: return True                 # Daten fehlen noch -> nichts sperren
+    e=hersteller_entry(row)
+    if not e or not e.get("sicher"): return False
+    h=e.get("hersteller") or {}
+    if not (h.get("name") and h.get("ort") and (h.get("email") or h.get("web"))): return False
+    return bool(e.get("sitz_in_eu") or e.get("eu_verantwortlicher"))
+
+def has_food_info(text):
+    b=(text or "").lower()
+    return "zusammensetzung" in b and any(w in b for w in ("analytische bestandteile","analytische bestanteile","inhaltsstoffe","rohprotein"))
+
+def futter_entry(key):
+    e=(FUTTER or {}).get(key)
+    if e and e.get("status") in ("gefunden","teilweise") and (e.get("zusammensetzung") or "").strip() and (e.get("analytische_bestandteile") or "").strip(): return e
+    return None
+
+def food_ok(key, row, tags):
+    if FUTTER is None or not (FOOD & set(tags)): return True
+    if ((FUTTER or {}).get(key) or {}).get("status")=="kein_futter": return True
+    return has_food_info(row.get("BESCHREIBUNG")) or futter_entry(key) is not None
+
+def esc(s): return htmlmod.escape(s or "", quote=False)
+
+def body_html(key, row):
+    html=row.get("BESCHREIBUNG","") or ""
+    e=None if has_food_info(html) else futter_entry(key)
+    if e:
+        parts=['<div class="lp-futterangaben">']
+        if (e.get("futtermittelart") or "").strip(): parts.append(f'<p><strong>{esc(e["futtermittelart"].strip())}</strong></p>')
+        for label,k in (("Zusammensetzung","zusammensetzung"),("Analytische Bestandteile","analytische_bestandteile"),
+                        ("Zusatzstoffe","zusatzstoffe"),("Fütterungsempfehlung","fuetterungsempfehlung")):
+            if (e.get(k) or "").strip(): parts.append(f'<h3>{label}</h3><p>{esc(e[k].strip())}</p>')
+        parts.append('</div>'); html+="".join(parts)
+    return html
+
+def title_quantity(title, unit):
+    """Menge aus dem Titel (z. B. '12 x 85 g', '1,6kg', '250 ml') in KG bzw. L"""
+    t=title.lower().replace(",",".")
+    m=re.search(r"(\d+)\s*[x×]\s*(\d+(?:\.\d+)?)\s*(kg|g|ml|l)\b", t) or re.search(r"(?<![\d.])(\d+(?:\.\d+)?)\s*(kg|g|ml|ltr|l)\b", t)
+    if not m: return None
+    if len(m.groups())==3: n,v,u=float(m.group(1)),float(m.group(2)),m.group(3)
+    else: n,v,u=1.0,float(m.group(1)),m.group(2)
+    f={"kg":("KG",1),"g":("KG",0.001),"l":("L",1),"ltr":("L",1),"ml":("L",0.001)}[u]
+    return n*v*f[1] if f[0]==unit else None
+
+def unit_measure(row):
+    """Füllmenge für den Grundpreis -> (Menge, 'KG'|'L') oder None; Zoodrops GRUNDPREIS bezieht sich auf die UVP"""
+    u=(row.get("GRUNDPREIS_EINHEIT") or "").strip().lower().replace(" ","")
+    m=fnum(row.get("GRUNDPREIS_MENGE")); gp=fnum(row.get("GRUNDPREIS")); uvp=fnum(row.get("UVP"))
+    if u in ("kg","1kg"): unit,step="KG",1.0
+    elif u in ("liter","l","1l"): unit,step="L",1.0
+    elif u=="100g": unit,step="KG",0.1
+    elif u=="100ml": unit,step="L",0.1
+    else: return None
+    if m<=0: return None
+    q=m*step
+    if gp>0 and uvp>0 and abs(gp*m-uvp)/uvp>0.05:      # Menge passt nicht zum Feed-Grundpreis -> Titel prüfen
+        t=title_quantity(row.get("TITEL") or "", unit)
+        if not t or abs(gp*(t/step)-uvp)/uvp>0.05: return None
+        q=t
+    return (round(q,4), unit)
 
 def images(row):
     return [row[f"BILD{i}"].strip() for i in range(1,9) if row.get(f"BILD{i}","").strip()]
@@ -177,12 +276,6 @@ def group_images(rows):
         for u in images(r):
             if u not in seen: seen.add(u); urls.append(u)
     return urls[:6]
-
-def body_html(row):
-    html=row.get("BESCHREIBUNG","") or ""
-    gp,gpe=fnum(row.get("GRUNDPREIS")),(row.get("GRUNDPREIS_EINHEIT") or "").strip()
-    if gp>0 and gpe: html+=f'<p class="grundpreis"><small>Grundpreis: {gp:.2f} € / {gpe}</small></p>'
-    return html
 
 def fetch_image(url):
     try:
@@ -207,7 +300,7 @@ def variant_labels(titles):
         out.append(lab[:80])
     return out, ptitle
 
-# ---------- Shopify REST ----------
+# ---------- Shopify REST / GraphQL ----------
 API_SEEN=[]
 def api(method, path, body=None):
     url=f"https://{SHOP}/admin/api/{APIV}/{path}"
@@ -224,10 +317,43 @@ def api(method, path, body=None):
             if e.code==429: time.sleep(2.0*(attempt+1)); continue
             if e.code>=500: time.sleep(1.5*(attempt+1)); continue
             log("HTTP",e.code,method,path,e.read().decode()[:300]); raise
-        except Exception as e:                       # Timeout/Verbindungsabbruch -> retry mit Backoff
+        except Exception as e:
             if attempt>=6: log("NET",method,path,str(e)[:120]); raise
             time.sleep(2.0*(attempt+1)); continue
     raise RuntimeError(f"API failed: {method} {path}")
+
+def gql(query, variables=None):
+    url=f"https://{SHOP}/admin/api/{APIV}/graphql.json"
+    body=json.dumps({"query":query,"variables":variables or {}}).encode()
+    for attempt in range(7):
+        req=urllib.request.Request(url, data=body, method="POST", headers={"X-Shopify-Access-Token":TOKEN,"Content-Type":"application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=120) as r:
+                d=json.loads(r.read().decode())
+        except urllib.error.HTTPError as e:
+            if e.code==429 or e.code>=500: time.sleep(2.0*(attempt+1)); continue
+            log("GQL HTTP", e.code, e.read().decode()[:300]); raise
+        except Exception as e:
+            if attempt>=6: raise
+            time.sleep(2.0*(attempt+1)); continue
+        errs=d.get("errors") or []
+        if any(((x.get("extensions") or {}).get("code")=="THROTTLED") for x in errs if isinstance(x,dict)): time.sleep(2.0*(attempt+1)); continue
+        if errs: raise RuntimeError(json.dumps(errs, ensure_ascii=False)[:500])
+        ts=((d.get("extensions") or {}).get("cost") or {}).get("throttleStatus") or {}
+        if ts and ts.get("currentlyAvailable",1000)<150: time.sleep(1.5)
+        return d.get("data") or {}
+    raise RuntimeError("GraphQL failed")
+
+UP_MUT="mutation($pid: ID!, $v: [ProductVariantsBulkInput!]!) { productVariantsBulkUpdate(productId: $pid, variants: $v) { userErrors { field message } } }"
+def set_unit_prices(pid, items):
+    """items: [(variant_id, (menge, einheit))] -> Shopify-Grundpreis (Bezug 1 kg bzw. 1 l)"""
+    if not items: return 0
+    v=[{"id":f"gid://shopify/ProductVariant/{vid}","showUnitPrice":True,
+        "unitPriceMeasurement":{"quantityValue":q,"quantityUnit":u,"referenceValue":1,"referenceUnit":u}} for vid,(q,u) in items]
+    d=gql(UP_MUT,{"pid":f"gid://shopify/Product/{pid}","v":v})
+    errs=((d.get("productVariantsBulkUpdate") or {}).get("userErrors")) or []
+    if errs: log("GRUNDPREIS FEHLER", pid, json.dumps(errs, ensure_ascii=False)[:300]); return 0
+    return len(items)
 
 def get_location_id():
     locs=api("GET","locations.json").get("locations",[])
@@ -238,91 +364,174 @@ def get_location_id():
 def load_state():
     try: return json.load(open(STATE_FILE, encoding="utf-8"))
     except Exception: return {}
-def save_state(st): json.dump(st, open(STATE_FILE,"w",encoding="utf-8"), ensure_ascii=False)
+def save_state(st): json.dump({k:{"p":v["p"],"v":v["v"],"i":v.get("i")} for k,v in st.items()}, open(STATE_FILE,"w",encoding="utf-8"), ensure_ascii=False)
 
-def build_state_from_store(state):
-    """barcode(EAN) -> {p:product_id, v:variant_id, i:inventory_item_id}"""
-    since,total=0,0
+def read_store():
+    """-> state: EAN -> {p,v,i,price,qty,policy}; prods: id -> {status,tags,bcs}"""
+    state={}; prods={}; since=0
     while True:
-        data=api("GET", f"products.json?limit=250&since_id={since}&fields=id,variants")
-        prods=data.get("products",[])
-        if not prods: break
-        for p in prods:
+        data=api("GET", f"products.json?limit=250&since_id={since}&fields=id,status,tags,variants")
+        page=data.get("products",[])
+        if not page: break
+        for p in page:
             since=max(since,p["id"])
+            tags={t.strip() for t in (p.get("tags") or "").split(",") if t.strip()}
+            prods[p["id"]]={"status":p.get("status"),"tags":tags,"bcs":[]}
             for v in p.get("variants",[]):
                 bc=(v.get("barcode") or "").strip()
-                if bc: state.setdefault(bc,{"p":p["id"],"v":v["id"],"i":v.get("inventory_item_id")})
-            total+=1
-        log(f"  ...{total} vorhandene Produkte gelesen")
-    log(f"State aus Store: {total} Produkte, {len(state)} Barcodes")
+                if not bc or bc in state: continue
+                state[bc]={"p":p["id"],"v":v["id"],"i":v.get("inventory_item_id"),"price":float(v.get("price") or 0),
+                           "qty":int(v.get("inventory_quantity") or 0),"policy":v.get("inventory_policy")}
+                prods[p["id"]]["bcs"].append(bc)
+        log(f"  ...{len(prods)} vorhandene Produkte gelesen")
+    log(f"Shop: {len(prods)} Produkte, {len(state)} Barcodes")
+    return state, prods
 
-# ---------- Create (gruppiert) ----------
-def qualifying(group):
-    q=[]
-    for r in group:
-        if not is_available(r): continue
-        g=compute_gross(fnum(r.get("VERKAUFSPREIS")), fnum(r.get("UVP")), fnum(r.get("MWST") or "19"))
-        if g is None: continue
-        q.append((r,g))
-    return q
+# ---------- Abgleich ----------
+def apply_variant(s, tgt, loc_id, st, dry):
+    art,price,qty,policy=tgt
+    body={}
+    if price is not None and abs(price-s["price"])>0.005: body["price"]=f"{price:.2f}"
+    if policy!=s["policy"]: body["inventory_policy"]=policy
+    if body:
+        st["preis_policy"]+=1
+        if not dry: body["id"]=s["v"]; api("PUT",f"variants/{s['v']}.json",{"variant":body})
+    if qty!=s["qty"] and loc_id and s.get("i"):
+        st["bestand"]+=1
+        if not dry: api("POST","inventory_levels/set.json",{"location_id":loc_id,"inventory_item_id":s["i"],"available":qty})
 
-def create_grouped(group, loc_id):
-    q=qualifying(group)
+def managed(pinfo, known, feed):
+    return SYNC_TAG in pinfo["tags"] or any(bc in known or bc in feed for bc in pinfo["bcs"])
+
+def run_update(rows, dry):
+    feed={(r.get("EAN") or "").strip(): r for r in rows if (r.get("EAN") or "").strip()}
+    known=set(load_state().keys())
+    loc_id=get_location_id(); state,prods=read_store()
+    st=collections.Counter()
+    for pid,pi in prods.items():
+        if not managed(pi,known,feed): st["nicht_verwaltet"]+=1; continue
+        arts=[]
+        for bc in pi["bcs"]:
+            tgt=variant_target(feed.get(bc)); arts.append(tgt[0])
+            try: apply_variant(state[bc], tgt, loc_id, st, dry)
+            except Exception as e: st["fehler"]+=1; log("ERR",bc,str(e)[:120])
+        want=pi["status"]
+        if arts and all(a=="DEAD" for a in arts): want="draft"
+        elif pi["status"]=="draft" and any(a!="DEAD" for a in arts) and not ({GESPERRT_TAG,AUS_TAG} & pi["tags"]): want="active"
+        if want!=pi["status"]:
+            st["status_"+want]+=1
+            if not dry: api("PUT",f"products/{pid}.json",{"product":{"id":pid,"status":want}})
+    log("\n=== Update ==="); [log(f"{k:22}: {v}") for k,v in sorted(st.items())]
+
+def product_tags(rep, compliant):
+    ptype,tags=categories(rep)
+    extra=[SYNC_TAG]+([] if compliant else [GESPERRT_TAG])
+    return ptype, tags+[t for t in extra if t not in tags]
+
+def create_grouped(key, group, compliant):
+    q=[(r,row_price(r)) for r in group if is_available(r) and row_price(r) is not None][:100]
     if not q: return "drop", None
-    if len(q)>100: q=q[:100]                 # Shopify-Varianten-Limit
     rows=[r for r,_ in q]
     imgs_urls=group_images(rows)
     if SKIP_NO_IMAGE and not imgs_urls: return "noimg", None
     art0=((rows[0].get("ARTIKELNUMMER","") or "img").strip().replace(" ","-")) or "img"
     imgs=[]
-    with ThreadPoolExecutor(max_workers=5) as ex:           # Bilder parallel laden (Speed)
+    with ThreadPoolExecutor(max_workers=5) as ex:
         for idx,b in enumerate(ex.map(fetch_image, imgs_urls)):
             if b: imgs.append({"attachment":b,"filename":f"{art0}-{idx+1}.jpg"})
     if SKIP_NO_IMAGE and not imgs: return "noimg", None
-    rep=rows[0]; ptype,tags=categories(rep); multi=len(q)>1
+    rep=rows[0]; ptype,tags=product_tags(rep, compliant); multi=len(q)>1
     labels,ptitle=variant_labels([(r.get("TITEL") or "").strip() for r in rows])
     variants=[]
     for idx,(r,g) in enumerate(q):
         fulfill=r.get("LAGERSTATUS","").strip().lower()=="fullfillment"
         var={"price":f"{g:.2f}","sku":r.get("ARTIKELNUMMER","").strip(),"barcode":r.get("EAN","").strip(),
              "inventory_management":"shopify","inventory_policy":"continue" if fulfill else "deny","taxable":True,
-             "inventory_quantity":max(int(fnum(r.get("BESTAND"))),0)}   # Bestand direkt beim Create (spart Inventar-Calls)
+             "inventory_quantity":max(int(fnum(r.get("BESTAND"))),0)}
         if multi: var["option1"]=labels[idx]
         variants.append(var)
-    payload={"product":{"title":ptitle,"body_html":body_html(rep),"vendor":rep.get("HERSTELLER","").strip(),
-        "product_type":ptype,"tags":", ".join(tags),"status":"active","images":imgs,"variants":variants}}
+    payload={"product":{"title":ptitle,"body_html":body_html(key,rep),"vendor":vendor_of(rep),
+        "product_type":ptype,"tags":", ".join(tags),"status":"active" if compliant else "draft","images":imgs,"variants":variants}}
     if multi: payload["product"]["options"]=[{"name":"Variante"}]
     p=api("POST","products.json",payload)["product"]
-    vmap={}
+    ids={}; units=[]
+    by_bc={(r.get("EAN") or "").strip(): r for r in rows}
     for var in p["variants"]:
         bc=(var.get("barcode") or "").strip()
-        vmap[bc]={"v":var["id"],"i":var.get("inventory_item_id")}
-    return "created", {"p":p["id"],"variants":vmap}
+        ids[bc]={"p":p["id"],"v":var["id"],"i":var.get("inventory_item_id")}
+        um=unit_measure(by_bc.get(bc) or {})
+        if um: units.append((var["id"],um))
+    set_unit_prices(p["id"], units)
+    return "created", ids
 
-def update_grouped(group, state, loc_id, full):
-    pid=None
-    for r in group:
-        bc=r.get("EAN","").strip()
-        if bc in state: pid=state[bc]["p"]; break
-    if not pid: return "miss"
-    for r,g in qualifying(group):
-        bc=r.get("EAN","").strip(); fulfill=r.get("LAGERSTATUS","").strip().lower()=="fullfillment"
-        if bc in state:
-            api("PUT",f"variants/{state[bc]['v']}.json",{"variant":{"id":state[bc]['v'],"price":f"{g:.2f}","inventory_policy":"continue" if fulfill else "deny"}})
-            if loc_id and state[bc].get("i"):
-                api("POST","inventory_levels/set.json",{"location_id":loc_id,"inventory_item_id":state[bc]["i"],"available":max(int(fnum(r.get('BESTAND'))),0)})
-    if full:
-        ptype,tags=categories(group[0])
-        api("PUT",f"products/{pid}.json",{"product":{"id":pid,"status":"active","product_type":ptype,"tags":", ".join(tags)}})
-    return "updated"
+def run_full(rows, dry, limit):
+    feed={(r.get("EAN") or "").strip(): r for r in rows if (r.get("EAN") or "").strip()}
+    known=set(load_state().keys())
+    loc_id=None if dry else get_location_id()
+    state,prods=({},{}) if dry else read_store()
+    st=collections.Counter(); seen_pids=set(); done=0
+    groups=group_rows(rows); log(f"{len(groups)} Artikel-Gruppen (SUCHNUMMER).")
+    for key,group in groups:
+        pid=next((state[(r.get('EAN') or '').strip()]["p"] for r in group if (r.get('EAN') or '').strip() in state), None)
+        live=[r for r in group if row_price(r) is not None and r.get("VERKAUFSSTATUS","").strip()=="Im Verkauf"]
+        rep=(live or group)[0]
+        _,tags0=categories(rep)
+        ok_gpsr=gpsr_ok(rep); ok_food=food_ok(key,rep,tags0); compliant=ok_gpsr and ok_food
+        try:
+            if pid:
+                seen_pids.add(pid); pi=prods[pid]; arts=[]; units=[]
+                for bc in pi["bcs"]:
+                    r=feed.get(bc); tgt=variant_target(r); arts.append(tgt[0])
+                    if not dry: apply_variant(state[bc], tgt, loc_id, st, dry)
+                    um=unit_measure(r) if r else None
+                    if um: units.append((state[bc]["v"],um))
+                alive=any(a!="DEAD" for a in arts)
+                want="active" if (alive and compliant and AUS_TAG not in pi["tags"]) else "draft"
+                ptype,tags=product_tags(rep, compliant)
+                if AUS_TAG in pi["tags"]: tags.append(AUS_TAG)
+                st["bestehend_"+want]+=1
+                if not compliant: st["gesperrt_gpsr" if not ok_gpsr else "gesperrt_futter"]+=1
+                if not dry:
+                    api("PUT",f"products/{pid}.json",{"product":{"id":pid,"status":want,"tags":", ".join(tags),"product_type":ptype,
+                        "body_html":body_html(key,rep),"vendor":vendor_of(rep) or None}})
+                    st["grundpreis"]+=set_unit_prices(pid, units)
+            else:
+                if not any(is_available(r) and row_price(r) is not None for r in group): st["nicht_verkaufbar"]+=1; continue
+                if not compliant: st["neu_gesperrt_gpsr" if not ok_gpsr else "neu_gesperrt_futter"]+=1
+                if dry: st["neu"]+=1; continue
+                res,ids=create_grouped(key, group, compliant)
+                if res=="created":
+                    for bc,vm in ids.items(): state[bc]=vm
+                    st["neu"]+=1; st["neu_varianten"]+=len(ids)
+                else: st[res]+=1
+        except Exception as e: st["fehler"]+=1; log("ERR",key,str(e)[:160])
+        done+=1
+        if done%100==0:
+            if not dry: save_state(state)
+            log(f"... {done}/{len(groups)} Gruppen {dict(st)}")
+        if limit and (st["neu"]+sum(v for k,v in st.items() if k.startswith("bestehend_")))>=limit: break
+    # Produkte, deren Artikel ganz aus dem Feed verschwunden sind
+    if not limit:
+        for pid,pi in prods.items():
+            if pid in seen_pids or not managed(pi,known,feed): continue
+            for bc in pi["bcs"]:
+                try: apply_variant(state[bc], variant_target(None), loc_id, st, dry)
+                except Exception as e: st["fehler"]+=1; log("ERR",bc,str(e)[:120])
+            if pi["status"]!="draft":
+                st["verschwunden_entwurf"]+=1
+                if not dry: api("PUT",f"products/{pid}.json",{"product":{"id":pid,"status":"draft"}})
+    if not dry: save_state(state)
+    log("\n=== Full ==="); [log(f"{k:22}: {v}") for k,v in sorted(st.items())]
+    if HERSTELLER is None: log("HINWEIS: data/hersteller.json fehlt – GPSR-Sperre inaktiv")
+    if FUTTER is None: log("HINWEIS: data/futter.json fehlt – Futter-Sperre inaktiv")
 
 # ---------- Collections ----------
 def find_collection(handle):
     sc=api("GET",f"smart_collections.json?handle={handle}").get("smart_collections",[])
     return sc[0] if sc else None
-def upsert_collection(handle,title,conds):
+def upsert_collection(handle,title,conds,published=True):
     rules=[{"column":"tag","relation":"equals","condition":c} for c in conds]
-    body={"smart_collection":{"title":title,"handle":handle,"disjunctive":False,"rules":rules,"published":True}}
+    body={"smart_collection":{"title":title,"handle":handle,"disjunctive":False,"rules":rules,"published":published}}
     ex=find_collection(handle)
     if ex:
         body["smart_collection"]["id"]=ex["id"]; api("PUT",f"smart_collections/{ex['id']}.json",body); return "updated"
@@ -347,68 +556,54 @@ def wipe_all():
     log(f"Wipe fertig: {total} Produkte geloescht, State geleert.")
 
 # ---------- Audit (nur lesend) ----------
+DELIVERY_Q="""{ deliveryProfiles(first: 5) { nodes { name default profileLocationGroups { locationGroupZones(first: 30) { nodes {
+  zone { name countries { code { countryCode restOfWorld } } }
+  methodDefinitions(first: 30) { nodes { name active
+    rateProvider { ... on DeliveryRateDefinition { price { amount currencyCode } } ... on DeliveryParticipant { id } }
+    methodConditions { field operator conditionCriteria { __typename ... on MoneyV2 { amount currencyCode } ... on Weight { value unit } } } } } } } } } } }"""
 def audit(rows):
     shop=api("GET","shop.json").get("shop",{})
     keys=["name","domain","plan_name","plan_display_name","password_enabled","taxes_included","tax_shipping","county_taxes",
           "country_code","currency","primary_locale","setup_required","eligible_for_payments","email","customer_email"]
     log("AUDIT shop", json.dumps({k:shop.get(k) for k in keys}, ensure_ascii=False))
-    for path,label in (("shipping_zones.json","versand"),("policies.json","rechtstexte")):
-        try:
-            data=api("GET",path)
-            if label=="versand":
-                for z in data.get("shipping_zones",[]):
-                    cc=",".join(c.get("code","") for c in z.get("countries",[]))
-                    for r in z.get("price_based_shipping_rates",[]):
-                        log("AUDIT versand", z.get("name"), cc, "| preis:", r.get("name"), r.get("price"), "| bestellwert", r.get("min_order_subtotal"), "-", r.get("max_order_subtotal"))
-                    for r in z.get("weight_based_shipping_rates",[]):
-                        log("AUDIT versand", z.get("name"), cc, "| gewicht:", r.get("name"), r.get("price"), "|", r.get("weight_low"), "-", r.get("weight_high"))
-                    for r in z.get("carrier_shipping_rate_providers",[]):
-                        log("AUDIT versand", z.get("name"), cc, "| carrier", r.get("carrier_service_id"))
-                if not data.get("shipping_zones"): log("AUDIT versand KEINE ZONEN")
-            else:
-                for p in data.get("policies",[]): log("AUDIT rechtstext", p.get("title"), "| Zeichen:", len(p.get("body") or ""), "|", p.get("url"))
-                if not data.get("policies"): log("AUDIT rechtstexte KEINE")
-        except Exception as e: log("AUDIT", label, "FEHLER", str(e)[:200])
+    try:
+        d=gql(DELIVERY_Q)
+        for prof in (d.get("deliveryProfiles") or {}).get("nodes",[]):
+            for g in prof.get("profileLocationGroups") or []:
+                for z in ((g.get("locationGroupZones") or {}).get("nodes") or []):
+                    cc=",".join((c.get("code") or {}).get("countryCode") or "REST" for c in (z.get("zone") or {}).get("countries",[]))
+                    for m in ((z.get("methodDefinitions") or {}).get("nodes") or []):
+                        conds=[f'{c.get("field")} {c.get("operator")} {(c.get("conditionCriteria") or {}).get("amount") or (c.get("conditionCriteria") or {}).get("value")}' for c in m.get("methodConditions") or []]
+                        log("AUDIT versand", prof.get("name"), "|", (z.get("zone") or {}).get("name"), cc, "|", m.get("name"), "aktiv" if m.get("active") else "inaktiv",
+                            "|", json.dumps((m.get("rateProvider") or {}).get("price")), "|", "; ".join(conds))
+    except Exception as e: log("AUDIT versand FEHLER", str(e)[:300])
+    try:
+        vid=next((v["v"] for v in read_store()[0].values() if v["qty"]>0), None)
+        d=gql("""mutation($i: DraftOrderInput!) { draftOrderCalculate(input: $i) { calculatedDraftOrder {
+                 totalTaxSet { shopMoney { amount } } taxesIncluded taxLines { title rate priceSet { shopMoney { amount } } } }
+                 userErrors { field message } } }""",
+              {"i":{"lineItems":[{"variantId":f"gid://shopify/ProductVariant/{vid}","quantity":1}],
+                    "shippingAddress":{"address1":"Teststrasse 1","city":"Berlin","zip":"10115","countryCode":"DE"}}})
+        log("AUDIT steuer", json.dumps(d.get("draftOrderCalculate"), ensure_ascii=False)[:600])
+    except Exception as e: log("AUDIT steuer FEHLER", str(e)[:300])
+    try:
+        pol=api("GET","policies.json").get("policies",[])
+        for p in pol: log("AUDIT rechtstext", p.get("title"), "| Zeichen:", len(p.get("body") or ""), "|", p.get("url"))
+        if not pol: log("AUDIT rechtstexte KEINE")
+    except Exception as e: log("AUDIT rechtstexte FEHLER", str(e)[:200])
     feed={(r.get("EAN") or "").strip(): r for r in rows if (r.get("EAN") or "").strip()}
-    st=collections.Counter(); vendors=collections.Counter(); ex=collections.defaultdict(list); store_bc=set()
-    since=0
-    while True:
-        prods=api("GET",f"products.json?limit=250&since_id={since}&fields=id,title,status,vendor,images,variants,body_html").get("products",[])
-        if not prods: break
-        for p in prods:
-            since=max(since,p["id"]); st["produkte"]+=1; st["status_"+str(p.get("status"))]+=1
-            vendors[p.get("vendor") or "(leer)"]+=1
-            body=p.get("body_html") or ""
-            if not p.get("images"): st["ohne_bild"]+=1; ex["ohne_bild"].append(p["title"][:50])
-            if 'class="grundpreis"' in body: st["alter_grundpreis_im_text"]+=1
-            if not body.strip(): st["ohne_beschreibung"]+=1
-            for v in p.get("variants",[]):
-                st["varianten"]+=1
-                bc=(v.get("barcode") or "").strip(); price=float(v.get("price") or 0); qty=int(v.get("inventory_quantity") or 0)
-                kaufbar=qty>0 or v.get("inventory_policy")=="continue"
-                if not bc: st["var_ohne_ean"]+=1; continue
-                store_bc.add(bc); r=feed.get(bc)
-                if r is None:
-                    st["var_nicht_mehr_im_feed"]+=1; st["var_nicht_mehr_im_feed_aber_kaufbar"]+=kaufbar; continue
-                if not is_available(r):
-                    st["var_bei_zoodrop_nicht_verfuegbar"]+=1; st["var_nicht_verfuegbar_aber_kaufbar"]+=kaufbar; continue
-                vat=fnum(r.get("MWST") or "19"); ek=fnum(r.get("VERKAUFSPREIS"))
-                g=compute_gross(ek,fnum(r.get("UVP")),vat)
-                if g is None:
-                    st["var_jetzt_unrentabel"]+=1
-                    if price/(1+vat/100)<=ek: st["var_verlust_bei_aktuellem_preis"]+=1; ex["verlust"].append(f'{p["title"][:40]} {price} (EK {ek})')
-                    continue
-                if abs(g-price)>0.005: st["var_preis_veraltet"]+=1
-                if int(fnum(r.get("BESTAND")))!=qty and v.get("inventory_policy")!="continue": st["var_bestand_veraltet"]+=1
-    newq=0
-    for key,group in group_rows(rows):
-        if any((r.get("EAN") or "").strip() in store_bc for r in group): continue
-        q=qualifying(group)
-        if q and group_images([r for r,_ in q]): newq+=1
-    st["neue_produkte_im_feed"]=newq
+    state,prods=read_store()
+    st=collections.Counter()
+    for pid,pi in prods.items():
+        st["produkte_"+str(pi["status"])]+=1
+        if GESPERRT_TAG in pi["tags"]: st["produkte_gesperrt"]+=1
+        for bc in pi["bcs"]:
+            s=state[bc]; t=variant_target(feed.get(bc)); kaufbar=s["qty"]>0 or s["policy"]=="continue"
+            st["var_"+t[0]]+=1
+            if t[0]=="DEAD" and kaufbar: st["var_DEAD_aber_kaufbar"]+=1
+            if t[1] is not None and abs(t[1]-s["price"])>0.005: st["var_preis_abweichend"]+=1
+            if t[2]!=s["qty"]: st["var_bestand_abweichend"]+=1
     for k in sorted(st): log("AUDIT produkte", k, st[k])
-    log("AUDIT hersteller", len(vendors), json.dumps(vendors.most_common(70), ensure_ascii=False))
-    for k,v in ex.items(): log("AUDIT beispiele", k, json.dumps(v[:10], ensure_ascii=False))
 
 # ---------- Main ----------
 def main():
@@ -416,7 +611,6 @@ def main():
     ap.add_argument("--mode",choices=["full","update","retag","collections","wipe","audit"],default="full")
     ap.add_argument("--dry-run",action="store_true"); ap.add_argument("--limit",type=int,default=0); ap.add_argument("--local",default="")
     args=ap.parse_args()
-
     if args.mode=="collections":
         if args.dry_run:
             for w,s in WORLD_SLUG.items():
@@ -427,73 +621,20 @@ def main():
     if args.mode=="wipe":
         if args.dry_run: log("[DRY-RUN] wuerde alle Produkte loeschen."); return
         wipe_all(); return
-
-    rows=load_rows(args.mode,args.local); log(f"{len(rows)} Zeilen geladen.")
+    rows=load_rows(args.local); log(f"{len(rows)} Zeilen geladen.")
     if args.mode=="audit": audit(rows); return
-    state={}   # immer frisch aus dem Store (verhindert veraltete Zuordnungen nach Wipe)
-    loc_id=None if args.dry_run else get_location_id()
-    if not args.dry_run: log("Location:",loc_id); build_state_from_store(state)
-
-    if args.mode=="update":
-        st={"updated":0,"miss":0,"errors":0}
-        for r in rows:
-            bc=r.get("EAN","").strip()
-            if bc not in state: st["miss"]+=1; continue
-            if not is_available(r): continue
-            g=compute_gross(fnum(r.get("VERKAUFSPREIS")),fnum(r.get("UVP")),fnum(r.get("MWST") or "19"))
-            if g is None: continue
-            if args.dry_run: st["updated"]+=1; continue
-            try:
-                fulfill=r.get("LAGERSTATUS","").strip().lower()=="fullfillment"
-                api("PUT",f"variants/{state[bc]['v']}.json",{"variant":{"id":state[bc]['v'],"price":f"{g:.2f}","inventory_policy":"continue" if fulfill else "deny"}})
-                if loc_id and state[bc].get("i"):
-                    api("POST","inventory_levels/set.json",{"location_id":loc_id,"inventory_item_id":state[bc]["i"],"available":max(int(fnum(r.get('BESTAND'))),0)})
-                st["updated"]+=1
-            except Exception as e: st["errors"]+=1; log("ERR",bc,str(e)[:120])
-        log("\n=== Update ==="); [log(f"{k:9}: {v}") for k,v in st.items()]; return
-
-    groups=group_rows(rows); log(f"{len(groups)} Artikel-Gruppen (SUCHNUMMER).")
-
+    if args.mode=="update": run_update(rows, args.dry_run); return
     if args.mode=="retag":
-        st={"retagged":0,"miss":0,"errors":0}
-        for key,group in groups:
-            pid=None
-            for r in group:
-                if r.get("EAN","").strip() in state: pid=state[r.get("EAN","").strip()]["p"]; break
+        state,prods=read_store(); st=collections.Counter()
+        for key,group in group_rows(rows):
+            pid=next((state[(r.get('EAN') or '').strip()]["p"] for r in group if (r.get('EAN') or '').strip() in state), None)
             if not pid: st["miss"]+=1; continue
             ptype,tags=categories(group[0])
             if args.dry_run: st["retagged"]+=1; continue
             try: api("PUT",f"products/{pid}.json",{"product":{"id":pid,"product_type":ptype,"tags":", ".join(tags)}}); st["retagged"]+=1
             except Exception as e: st["errors"]+=1; log("ERR",key,str(e)[:120])
-            if st["retagged"]%100==0: log(f"... {st['retagged']} getaggt")
-            if args.limit and st["retagged"]>=args.limit: break
         log("\n=== Retag ==="); [log(f"{k:9}: {v}") for k,v in st.items()]; return
-
-    # full
-    st={"created":0,"updated":0,"variants":0,"noimg":0,"drop":0,"errors":0}
-    done=0
-    for key,group in groups:
-        exists=any(r.get("EAN","").strip() in state for r in group)
-        q=qualifying(group)
-        if not q:
-            st["drop"]+=1; continue
-        if args.dry_run:
-            st["created" if not exists else "updated"]+=1; st["variants"]+=len(q); continue
-        try:
-            if exists:
-                update_grouped(group,state,loc_id,True); st["updated"]+=1
-            else:
-                res,ids=create_grouped(group,loc_id)
-                if res=="created":
-                    for bc,vm in ids["variants"].items(): state[bc]={"p":ids["p"],"v":vm["v"],"i":vm["i"]}
-                    st["created"]+=1; st["variants"]+=len(ids["variants"])
-                else: st[res]+=1
-        except Exception as e: st["errors"]+=1; log("ERR",key,str(e)[:140])
-        done+=1
-        if done%50==0: save_state(state); log(f"... {done}/{len(groups)} Gruppen (created {st['created']}, updated {st['updated']}, err {st['errors']})")
-        if args.limit and (st["created"]+st["updated"])>=args.limit: break
-    save_state(state)
-    log("\n=== Full ==="); [log(f"{k:9}: {v}") for k,v in st.items()]
+    run_full(rows, args.dry_run, args.limit)
 
 if __name__=="__main__":
     main()
