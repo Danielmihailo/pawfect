@@ -544,6 +544,16 @@ def make_collections():
             n[upsert_collection(f"{slug}-{CAT_HANDLE[cat]}",f"{world} · {cat}",[world,cat])]+=1
     log(f"Collections: {n['created']} neu, {n['updated']} aktualisiert.")
 
+def make_pages():
+    """Shop-Seiten, die das Theme braucht (Widerrufsfunktion nach § 356a BGB)"""
+    for pg in [{"handle":"widerruf","title":"Vertrag widerrufen","template_suffix":"widerruf","body_html":""}]:
+        ex=api("GET",f"pages.json?handle={pg['handle']}").get("pages",[])
+        body={"page":dict(pg, published=True)}
+        if ex:
+            body["page"]["id"]=ex[0]["id"]; api("PUT",f"pages/{ex[0]['id']}.json",body); log("Seite aktualisiert:",pg["handle"])
+        else:
+            api("POST","pages.json",body); log("Seite angelegt:",pg["handle"])
+
 def wipe_all():
     total=0
     while True:
@@ -608,7 +618,7 @@ def audit(rows):
 # ---------- Main ----------
 def main():
     ap=argparse.ArgumentParser()
-    ap.add_argument("--mode",choices=["full","update","retag","collections","wipe","audit"],default="full")
+    ap.add_argument("--mode",choices=["full","update","retag","collections","wipe","audit","seiten"],default="full")
     ap.add_argument("--dry-run",action="store_true"); ap.add_argument("--limit",type=int,default=0); ap.add_argument("--local",default="")
     args=ap.parse_args()
     if args.mode=="collections":
@@ -618,6 +628,7 @@ def main():
                 for c in WORLD_CATS.get(w,[]): log(f"  {s}-{CAT_HANDLE[c]} -> {w}+{c}")
             return
         make_collections(); return
+    if args.mode=="seiten": make_pages(); return
     if args.mode=="wipe":
         if args.dry_run: log("[DRY-RUN] wuerde alle Produkte loeschen."); return
         wipe_all(); return

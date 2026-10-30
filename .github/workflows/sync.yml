@@ -1,17 +1,17 @@
 name: Zoodrop Sync
 
 on:
-  # Zeitplan AUS während Neuaufbau (Wipe + Full) – danach reaktivieren!
-  # schedule:
-  #   - cron: "0 5 * * *"
-  #   - cron: "0 3 * * 1"
+  # update alle 4 Stunden (Preis, Bestand, Verkaufbarkeit), full montags 03:00 UTC (neue Artikel, Texte, Grundpreis, Pflichtangaben)
+  schedule:
+    - cron: "15 */4 * * *"
+    - cron: "0 3 * * 1"
   workflow_dispatch:
     inputs:
       mode:
         description: "Sync-Modus"
         type: choice
-        options: [update, full, retag, collections, audit, wipe]
-        default: full
+        options: [update, full, audit, seiten, retag, collections, wipe]
+        default: update
 
 permissions:
   contents: write
@@ -46,7 +46,7 @@ jobs:
         env:
           SHOPIFY_SHOP: lovepawfect.myshopify.com
           SHOPIFY_ACCESS_TOKEN: ${{ secrets.SHOPIFY_ACCESS_TOKEN }}
-          SHOPIFY_API_VERSION: "2025-01"
+          SHOPIFY_API_VERSION: "2026-01"
           PRICE_FACTOR: "1.7"
           MIN_MARGIN: "0.30"
           SKIP_NO_IMAGE: "1"
