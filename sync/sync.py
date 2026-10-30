@@ -554,6 +554,44 @@ def make_pages():
         else:
             api("POST","pages.json",body); log("Seite angelegt:",pg["handle"])
 
+VERSAND_Q="""{ deliveryProfiles(first: 5) { nodes { id name default profileLocationGroups { locationGroup { id } locationGroupZones(first: 30) { nodes {
+  zone { id name countries { code { countryCode restOfWorld } } }
+  methodDefinitions(first: 30) { nodes { id name active rateProvider { ... on DeliveryRateDefinition { price { amount } } } } } } } } } } }"""
+PROFILE_MUT="mutation($id: ID!, $p: DeliveryProfileInput!) { deliveryProfileUpdate(id: $id, profile: $p) { profile { id } userErrors { field message } } }"
+NACHBARLAENDER=["AT","BE","LU","NL","DK"]   # Zoodrop liefert nur nach DE + diese Länder
+
+def set_versand():
+    """Versand nur in Zoodrop-Länder: DE bleibt (ohne Express), EU-/Weltzonen raus, neue Zone AT/BE/LU/NL/DK"""
+    prof=next(p for p in gql(VERSAND_Q)["deliveryProfiles"]["nodes"] if p.get("default"))
+    zones_del=[]; methods_del=[]; lg_id=None; price=None
+    for g in prof["profileLocationGroups"]:
+        lg_id=g["locationGroup"]["id"]
+        for z in g["locationGroupZones"]["nodes"]:
+            cc={(c["code"].get("countryCode") or "REST") for c in z["zone"]["countries"]}
+            meths=z["methodDefinitions"]["nodes"]
+            if "DE" in cc:
+                if cc-{"DE"}: raise RuntimeError(f"DE-Zone enthält weitere Länder: {sorted(cc)} – bitte von Hand prüfen")
+                for m in meths:
+                    if "express" in (m.get("name") or "").lower(): methods_del.append(m["id"]); log("VERSAND entferne Methode", m["name"], "aus", z["zone"]["name"])
+            else:
+                if cc & set(NACHBARLAENDER) and meths and price is None:
+                    price=((meths[0].get("rateProvider") or {}).get("price") or {}).get("amount")
+                zones_del.append(z["zone"]["id"]); log("VERSAND entferne Zone", z["zone"]["name"], ",".join(sorted(cc)))
+    if zones_del or methods_del:
+        r=gql(PROFILE_MUT,{"id":prof["id"],"p":{"zonesToDelete":zones_del,"methodDefinitionsToDelete":methods_del}})["deliveryProfileUpdate"]
+        if r["userErrors"]: raise RuntimeError(json.dumps(r["userErrors"], ensure_ascii=False))
+    zone={"name":"Nachbarländer (Zoodrop)","countries":[{"code":c,"includeAllProvinces":True} for c in NACHBARLAENDER],
+          "methodDefinitionsToCreate":[{"name":"Standard","active":True,"rateDefinition":{"price":{"amount":float(price or 13.99),"currencyCode":"EUR"}}}]}
+    r=gql(PROFILE_MUT,{"id":prof["id"],"p":{"locationGroupsToUpdate":[{"id":lg_id,"zonesToCreate":[zone]}]}})["deliveryProfileUpdate"]
+    if r["userErrors"]: raise RuntimeError(json.dumps(r["userErrors"], ensure_ascii=False))
+    log("VERSAND neue Zone", ",".join(NACHBARLAENDER), "Standard", price or 13.99, "EUR")
+    for g in gql(VERSAND_Q)["deliveryProfiles"]["nodes"]:
+        for lg in g["profileLocationGroups"]:
+            for z in lg["locationGroupZones"]["nodes"]:
+                for m in z["methodDefinitions"]["nodes"]:
+                    log("VERSAND jetzt", g["name"], "|", z["zone"]["name"], ",".join(sorted((c["code"].get("countryCode") or "REST") for c in z["zone"]["countries"])),
+                        "|", m["name"], (m.get("rateProvider") or {}).get("price"))
+
 def wipe_all():
     total=0
     while True:
@@ -618,7 +656,7 @@ def audit(rows):
 # ---------- Main ----------
 def main():
     ap=argparse.ArgumentParser()
-    ap.add_argument("--mode",choices=["full","update","retag","collections","wipe","audit","seiten"],default="full")
+    ap.add_argument("--mode",choices=["full","update","retag","collections","wipe","audit","seiten","versand"],default="full")
     ap.add_argument("--dry-run",action="store_true"); ap.add_argument("--limit",type=int,default=0); ap.add_argument("--local",default="")
     args=ap.parse_args()
     if args.mode=="collections":
@@ -629,6 +667,7 @@ def main():
             return
         make_collections(); return
     if args.mode=="seiten": make_pages(); return
+    if args.mode=="versand": set_versand(); return
     if args.mode=="wipe":
         if args.dry_run: log("[DRY-RUN] wuerde alle Produkte loeschen."); return
         wipe_all(); return
