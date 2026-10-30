@@ -1,0 +1,568 @@
+{
+ "Trixie": {
+  "marke": "Trixie",
+  "hersteller": {
+   "name": "TRIXIE Heimtierbedarf GmbH & Co. KG",
+   "strasse": "Industriestraße 32",
+   "plz": "24963",
+   "ort": "Tarp",
+   "land": "Deutschland",
+   "email": "kontakt@trixie.de",
+   "web": "www.trixie.de"
+  },
+  "sitz_in_eu": true,
+  "eu_verantwortlicher": null,
+  "quelle": "https://www.trixie.de/de/impressum",
+  "sicher": true,
+  "hinweis": ""
+ },
+ "Karlie": {
+  "marke": "Karlie",
+  "hersteller": {
+   "name": "Karlie GmbH",
+   "strasse": "Graf-Zeppelin-Str. 62",
+   "plz": "33181",
+   "ort": "Bad Wünnenberg-Haaren",
+   "land": "Deutschland",
+   "email": "info@karlie.de",
+   "web": "www.karlie.de"
+  },
+  "sitz_in_eu": true,
+  "eu_verantwortlicher": null,
+  "quelle": "https://www.karlie.de/impressum/",
+  "sicher": true,
+  "hinweis": ""
+ },
+ "DUVO": {
+  "marke": "duvo+",
+  "hersteller": {
+   "name": "Laroy Group NV",
+   "strasse": "Industrieweg 98-100",
+   "plz": "9032",
+   "ort": "Wondelgem",
+   "land": "Belgien",
+   "email": "info@laroygroup.com",
+   "web": "www.duvoplus.com"
+  },
+  "sitz_in_eu": true,
+  "eu_verantwortlicher": null,
+  "quelle": "https://www.duvoplus.com/en/disclaimer",
+  "sicher": true,
+  "hinweis": "duvo+ ist eine Marke der Laroy Group"
+ },
+ "EBI": {
+  "marke": "EBI",
+  "hersteller": {
+   "name": "Laroy Group NV",
+   "strasse": "Industrieweg 98-100",
+   "plz": "9032",
+   "ort": "Wondelgem",
+   "land": "Belgien",
+   "email": "info@laroygroup.com",
+   "web": "www.laroygroup.com"
+  },
+  "sitz_in_eu": true,
+  "eu_verantwortlicher": null,
+  "quelle": "https://www.laroygroup.com/en/disclaimer",
+  "sicher": true,
+  "hinweis": "EBI (Europet Bernina International GmbH) gehört seit 2015 zur Laroy Group; Marke im Laroy-Portfolio"
+ },
+ "D&D Home": {
+  "marke": "D&D Home",
+  "hersteller": {
+   "name": "Laroy Group NV",
+   "strasse": "Industrieweg 98-100",
+   "plz": "9032",
+   "ort": "Wondelgem",
+   "land": "Belgien",
+   "email": "info@laroygroup.com",
+   "web": "www.laroygroup.com"
+  },
+  "sitz_in_eu": true,
+  "eu_verantwortlicher": null,
+  "quelle": "https://www.laroygroup.com/en/disclaimer",
+  "sicher": true,
+  "hinweis": "D&D Home wird auf laroygroup.com als eigene Marke geführt"
+ },
+ "Nobby": {
+  "marke": "Nobby",
+  "hersteller": {
+   "name": "Nobby Pet Shop GmbH",
+   "strasse": "Im Egeling 21",
+   "plz": "46395",
+   "ort": "Bocholt",
+   "land": "Deutschland",
+   "email": "info@nobby.de",
+   "web": "www.nobby.de"
+  },
+  "sitz_in_eu": true,
+  "eu_verantwortlicher": null,
+  "quelle": "https://www.nobby.de/impressum",
+  "sicher": true,
+  "hinweis": ""
+ },
+ "Beeztees": {
+  "marke": "Beeztees",
+  "hersteller": {
+   "name": "Beeztees",
+   "strasse": "Energieweg 4",
+   "plz": "5145 NW",
+   "ort": "Waalwijk",
+   "land": "Niederlande",
+   "email": "info@beeztees.com",
+   "web": "www.beeztees.com"
+  },
+  "sitz_in_eu": true,
+  "eu_verantwortlicher": null,
+  "quelle": "https://www.beeztees.com/contact/",
+  "sicher": true,
+  "hinweis": ""
+ },
+ "Flexi": {
+  "marke": "flexi",
+  "hersteller": {
+   "name": "flexi-Bogdahn International GmbH & Co. KG",
+   "strasse": "Carl-Benz-Weg 13",
+   "plz": "22941",
+   "ort": "Bargteheide",
+   "land": "Deutschland",
+   "email": "info@flexi.de",
+   "web": "www.flexi.de"
+  },
+  "sitz_in_eu": true,
+  "eu_verantwortlicher": null,
+  "quelle": "https://flexi.de/de/impressum/",
+  "sicher": true,
+  "hinweis": ""
+ },
+ "Wolfsblut": {
+  "marke": "Wolfsblut",
+  "hersteller": {
+   "name": "Healthfood24 GmbH",
+   "strasse": "Tschaikowskistr. 17",
+   "plz": "04105",
+   "ort": "Leipzig",
+   "land": "Deutschland",
+   "email": "",
+   "web": "www.wolfsblut.com"
+  },
+  "sitz_in_eu": true,
+  "eu_verantwortlicher": null,
+  "quelle": "https://www.wolfsblut.com/impressum",
+  "sicher": true,
+  "hinweis": "E-Mail im Impressum verschleiert, Kontakt über Website"
+ },
+ "JR Farm": {
+  "marke": "JR Farm",
+  "hersteller": {
+   "name": "JR FARM GmbH",
+   "strasse": "Am Schlarpfengrund 5",
+   "plz": "86684",
+   "ort": "Holzheim-Pessenburgheim",
+   "land": "Deutschland",
+   "email": "",
+   "web": "www.jr-farm.de"
+  },
+  "sitz_in_eu": true,
+  "eu_verantwortlicher": null,
+  "quelle": "https://www.jr-farm.de/rechtliches/impressum",
+  "sicher": true,
+  "hinweis": ""
+ },
+ "GranataPet": {
+  "marke": "GranataPet",
+  "hersteller": {
+   "name": "Fox4Pets GmbH & Co. KG",
+   "strasse": "Wohlmutser Weg 12",
+   "plz": "87463",
+   "ort": "Dietmannsried",
+   "land": "Deutschland",
+   "email": "info@granatapet.de",
+   "web": "www.granatapet.de"
+  },
+  "sitz_in_eu": true,
+  "eu_verantwortlicher": null,
+  "quelle": "https://www.granatapet.de/impressum",
+  "sicher": true,
+  "hinweis": "Betreiber der Marke GranataPet laut Impressum granatapet.de"
+ },
+ "Savic": {
+  "marke": "Savic",
+  "hersteller": {
+   "name": "Savic",
+   "strasse": "Ringlaan 10",
+   "plz": "8501",
+   "ort": "Heule (Kortrijk)",
+   "land": "Belgien",
+   "email": "info@savic.be",
+   "web": "www.savic.be"
+  },
+  "sitz_in_eu": true,
+  "eu_verantwortlicher": null,
+  "quelle": "https://www.savic.be",
+  "sicher": true,
+  "hinweis": ""
+ },
+ "Hunter": {
+  "marke": "Hunter",
+  "hersteller": {
+   "name": "HUNTER International GmbH",
+   "strasse": "Mittelbreede 5",
+   "plz": "33719",
+   "ort": "Bielefeld",
+   "land": "Deutschland",
+   "email": "info@hunter.de",
+   "web": "www.hunter.de"
+  },
+  "sitz_in_eu": true,
+  "eu_verantwortlicher": null,
+  "quelle": "https://www.hunter.de/de/impressum",
+  "sicher": true,
+  "hinweis": ""
+ },
+ "Pfiffikus": {
+  "marke": "Pfiffikus",
+  "hersteller": {
+   "name": "Werner Tiernahrung GmbH & Co. KG",
+   "strasse": "Preußenstraße 2",
+   "plz": "44532",
+   "ort": "Lünen",
+   "land": "Deutschland",
+   "email": "info@pfiffikus.de",
+   "web": "www.pfiffikus.de"
+  },
+  "sitz_in_eu": true,
+  "eu_verantwortlicher": null,
+  "quelle": "https://www.pfiffikus.de/Impressum:_:4.html",
+  "sicher": true,
+  "hinweis": ""
+ },
+ "Kerbl": {
+  "marke": "Kerbl",
+  "hersteller": {
+   "name": "Albert Kerbl GmbH",
+   "strasse": "Felizenzell 9",
+   "plz": "84428",
+   "ort": "Buchbach",
+   "land": "Deutschland",
+   "email": "",
+   "web": "www.kerbl.com"
+  },
+  "sitz_in_eu": true,
+  "eu_verantwortlicher": null,
+  "quelle": "https://www.kerbl.com/de/impressum",
+  "sicher": true,
+  "hinweis": ""
+ },
+ "Gimborn": {
+  "marke": "Gimborn",
+  "hersteller": {
+   "name": "H. von Gimborn GmbH",
+   "strasse": "Albert-Einstein-Straße 6",
+   "plz": "46446",
+   "ort": "Emmerich am Rhein",
+   "land": "Deutschland",
+   "email": "info@gimborn.de",
+   "web": "www.gimborn.eu"
+  },
+  "sitz_in_eu": true,
+  "eu_verantwortlicher": null,
+  "quelle": "https://www.gimborn.eu/de/service/impressum",
+  "sicher": true,
+  "hinweis": ""
+ },
+ "Hofman Animal Care": {
+  "marke": "Hofman Animal Care",
+  "hersteller": {
+   "name": "Hofman Animal Care",
+   "strasse": "De Leemkoele 2",
+   "plz": "7468 DM",
+   "ort": "Enter",
+   "land": "Niederlande",
+   "email": "info@hofmananimalcare.nl",
+   "web": "www.hofmananimalcare.nl"
+  },
+  "sitz_in_eu": true,
+  "eu_verantwortlicher": null,
+  "quelle": "https://www.hofmananimalcare.nl/",
+  "sicher": true,
+  "hinweis": ""
+ },
+ "Feliway": {
+  "marke": "Feliway",
+  "hersteller": {
+   "name": "Ceva Tiergesundheit GmbH",
+   "strasse": "Kanzlerstr. 4",
+   "plz": "40472",
+   "ort": "Düsseldorf",
+   "land": "Deutschland",
+   "email": "cevadeutschland@ceva.com",
+   "web": "www.ceva.de"
+  },
+  "sitz_in_eu": true,
+  "eu_verantwortlicher": null,
+  "quelle": "https://www.feliway.de/pages/impressum",
+  "sicher": true,
+  "hinweis": ""
+ },
+ "Adaptil": {
+  "marke": "Adaptil",
+  "hersteller": {
+   "name": "Ceva Tiergesundheit GmbH",
+   "strasse": "Kanzlerstr. 4",
+   "plz": "40472",
+   "ort": "Düsseldorf",
+   "land": "Deutschland",
+   "email": "cevadeutschland@ceva.com",
+   "web": "www.ceva.de"
+  },
+  "sitz_in_eu": true,
+  "eu_verantwortlicher": null,
+  "quelle": "https://www.feliway.de/pages/impressum",
+  "sicher": true,
+  "hinweis": "Adaptil ist wie Feliway eine Ceva-Marke"
+ },
+ "HUGRO": {
+  "marke": "HUGRO",
+  "hersteller": {
+   "name": "HUGRO GmbH",
+   "strasse": "Welps Esch 1",
+   "plz": "48369",
+   "ort": "Saerbeck",
+   "land": "Deutschland",
+   "email": "info@hugro.de",
+   "web": "www.hugro.de"
+  },
+  "sitz_in_eu": true,
+  "eu_verantwortlicher": null,
+  "quelle": "https://hugro.de/impressum/",
+  "sicher": true,
+  "hinweis": ""
+ },
+ "Wildes Land": {
+  "marke": "Wildes Land",
+  "hersteller": {
+   "name": "Premium Pet Products GmbH",
+   "strasse": "Landsbergerstr. 234",
+   "plz": "80687",
+   "ort": "München",
+   "land": "Deutschland",
+   "email": "service@wildes-land.de",
+   "web": "www.wildes-land.de"
+  },
+  "sitz_in_eu": true,
+  "eu_verantwortlicher": null,
+  "quelle": "https://www.wildes-land.de/impressum",
+  "sicher": true,
+  "hinweis": ""
+ },
+ "Rinti": {
+  "marke": "Rinti",
+  "hersteller": {
+   "name": "Finnern GmbH & Co. KG",
+   "strasse": "Bahnhofstr. 11",
+   "plz": "27283",
+   "ort": "Verden (Aller)",
+   "land": "Deutschland",
+   "email": "info@finnern.de",
+   "web": "www.finnern.de"
+  },
+  "sitz_in_eu": true,
+  "eu_verantwortlicher": null,
+  "quelle": "https://www.finnern.de/impressum",
+  "sicher": true,
+  "hinweis": ""
+ },
+ "Versele-Laga": {
+  "marke": "Versele-Laga",
+  "hersteller": {
+   "name": "Versele-Laga",
+   "strasse": "Kapellestraat 70",
+   "plz": "9800",
+   "ort": "Deinze",
+   "land": "Belgien",
+   "email": "",
+   "web": "www.versele.com"
+  },
+  "sitz_in_eu": true,
+  "eu_verantwortlicher": null,
+  "quelle": "https://www.versele.com/de/impressum",
+  "sicher": true,
+  "hinweis": ""
+ },
+ "CATIT": {
+  "marke": "Catit",
+  "hersteller": {
+   "name": "Rolf C. Hagen, Inc.",
+   "strasse": "20500 Trans Canada Highway",
+   "plz": "H9X 0A2",
+   "ort": "Baie d'Urfé QC",
+   "land": "Kanada",
+   "email": "",
+   "web": "hagen.com/de/kontaktieren-sie-uns"
+  },
+  "sitz_in_eu": false,
+  "eu_verantwortlicher": {
+   "name": "HAGEN Deutschland GmbH & Co. KG",
+   "strasse": "Lehmweg 99–105",
+   "plz": "25488",
+   "ort": "Holm",
+   "land": "Deutschland",
+   "email": "",
+   "web": "hagen.com/de/kontaktieren-sie-uns"
+  },
+  "quelle": "https://hagen.com/de/kontaktieren-sie-uns/",
+  "sicher": true,
+  "hinweis": "Hagen-Marke"
+ },
+ "DOGIT": {
+  "marke": "Dogit",
+  "hersteller": {
+   "name": "Rolf C. Hagen, Inc.",
+   "strasse": "20500 Trans Canada Highway",
+   "plz": "H9X 0A2",
+   "ort": "Baie d'Urfé QC",
+   "land": "Kanada",
+   "email": "",
+   "web": "hagen.com/de/kontaktieren-sie-uns"
+  },
+  "sitz_in_eu": false,
+  "eu_verantwortlicher": {
+   "name": "HAGEN Deutschland GmbH & Co. KG",
+   "strasse": "Lehmweg 99–105",
+   "plz": "25488",
+   "ort": "Holm",
+   "land": "Deutschland",
+   "email": "",
+   "web": "hagen.com/de/kontaktieren-sie-uns"
+  },
+  "quelle": "https://hagen.com/de/kontaktieren-sie-uns/",
+  "sicher": true,
+  "hinweis": "Hagen-Marke"
+ },
+ "Zeus": {
+  "marke": "Zeus",
+  "hersteller": {
+   "name": "Rolf C. Hagen, Inc.",
+   "strasse": "20500 Trans Canada Highway",
+   "plz": "H9X 0A2",
+   "ort": "Baie d'Urfé QC",
+   "land": "Kanada",
+   "email": "",
+   "web": "hagen.com/de/kontaktieren-sie-uns"
+  },
+  "sitz_in_eu": false,
+  "eu_verantwortlicher": {
+   "name": "HAGEN Deutschland GmbH & Co. KG",
+   "strasse": "Lehmweg 99–105",
+   "plz": "25488",
+   "ort": "Holm",
+   "land": "Deutschland",
+   "email": "",
+   "web": "hagen.com/de/kontaktieren-sie-uns"
+  },
+  "quelle": "https://hagen.com/de/kontaktieren-sie-uns/",
+  "sicher": true,
+  "hinweis": "Hagen-Marke"
+ },
+ "Vesper": {
+  "marke": "Vesper",
+  "hersteller": {
+   "name": "Rolf C. Hagen, Inc.",
+   "strasse": "20500 Trans Canada Highway",
+   "plz": "H9X 0A2",
+   "ort": "Baie d'Urfé QC",
+   "land": "Kanada",
+   "email": "",
+   "web": "hagen.com/de/kontaktieren-sie-uns"
+  },
+  "sitz_in_eu": false,
+  "eu_verantwortlicher": {
+   "name": "HAGEN Deutschland GmbH & Co. KG",
+   "strasse": "Lehmweg 99–105",
+   "plz": "25488",
+   "ort": "Holm",
+   "land": "Deutschland",
+   "email": "",
+   "web": "hagen.com/de/kontaktieren-sie-uns"
+  },
+  "quelle": "https://hagen.com/de/kontaktieren-sie-uns/",
+  "sicher": true,
+  "hinweis": "Hagen-Marke"
+ },
+ "LIVING WORLD": {
+  "marke": "Living World",
+  "hersteller": {
+   "name": "Rolf C. Hagen, Inc.",
+   "strasse": "20500 Trans Canada Highway",
+   "plz": "H9X 0A2",
+   "ort": "Baie d'Urfé QC",
+   "land": "Kanada",
+   "email": "",
+   "web": "hagen.com/de/kontaktieren-sie-uns"
+  },
+  "sitz_in_eu": false,
+  "eu_verantwortlicher": {
+   "name": "HAGEN Deutschland GmbH & Co. KG",
+   "strasse": "Lehmweg 99–105",
+   "plz": "25488",
+   "ort": "Holm",
+   "land": "Deutschland",
+   "email": "",
+   "web": "hagen.com/de/kontaktieren-sie-uns"
+  },
+  "quelle": "https://hagen.com/de/kontaktieren-sie-uns/",
+  "sicher": true,
+  "hinweis": "Hagen-Marke"
+ },
+ "Laguna": {
+  "marke": "Laguna",
+  "hersteller": {
+   "name": "Rolf C. Hagen, Inc.",
+   "strasse": "20500 Trans Canada Highway",
+   "plz": "H9X 0A2",
+   "ort": "Baie d'Urfé QC",
+   "land": "Kanada",
+   "email": "",
+   "web": "hagen.com/de/kontaktieren-sie-uns"
+  },
+  "sitz_in_eu": false,
+  "eu_verantwortlicher": {
+   "name": "HAGEN Deutschland GmbH & Co. KG",
+   "strasse": "Lehmweg 99–105",
+   "plz": "25488",
+   "ort": "Holm",
+   "land": "Deutschland",
+   "email": "",
+   "web": "hagen.com/de/kontaktieren-sie-uns"
+  },
+  "quelle": "https://hagen.com/de/kontaktieren-sie-uns/",
+  "sicher": true,
+  "hinweis": "Hagen-Marke"
+ },
+ "Hagen": {
+  "marke": "Hagen",
+  "hersteller": {
+   "name": "Rolf C. Hagen, Inc.",
+   "strasse": "20500 Trans Canada Highway",
+   "plz": "H9X 0A2",
+   "ort": "Baie d'Urfé QC",
+   "land": "Kanada",
+   "email": "",
+   "web": "hagen.com/de/kontaktieren-sie-uns"
+  },
+  "sitz_in_eu": false,
+  "eu_verantwortlicher": {
+   "name": "HAGEN Deutschland GmbH & Co. KG",
+   "strasse": "Lehmweg 99–105",
+   "plz": "25488",
+   "ort": "Holm",
+   "land": "Deutschland",
+   "email": "",
+   "web": "hagen.com/de/kontaktieren-sie-uns"
+  },
+  "quelle": "https://hagen.com/de/kontaktieren-sie-uns/",
+  "sicher": true,
+  "hinweis": "Hagen-Marke"
+ }
+}

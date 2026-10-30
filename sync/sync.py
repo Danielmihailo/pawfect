@@ -213,8 +213,8 @@ def gpsr_ok(row):
     return bool(e.get("sitz_in_eu") or e.get("eu_verantwortlicher"))
 
 def has_food_info(text):
-    b=(text or "").lower()
-    return "zusammensetzung" in b and any(w in b for w in ("analytische bestandteile","analytische bestanteile","inhaltsstoffe","rohprotein"))
+    b=re.sub(r"<[^>]+>"," ",text or "").lower()
+    return bool(re.search(r"zusammensetzung|zutaten", b)) and bool(re.search(r"analytische bestan?dteile|inhaltsstoffe|roh-?protein|roh-?fett|roh-?asche|roh-?faser", b))
 
 def futter_entry(key):
     e=(FUTTER or {}).get(key)
