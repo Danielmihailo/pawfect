@@ -84,6 +84,23 @@
   "sicher": true,
   "hinweis": "D&D Home wird auf laroygroup.com als eigene Marke geführt"
  },
+ "Dokas": {
+  "marke": "Dokas",
+  "hersteller": {
+   "name": "Dokas Handelsgesellschaft mbH",
+   "strasse": "Europastraße 23",
+   "plz": "45888",
+   "ort": "Gelsenkirchen",
+   "land": "Deutschland",
+   "email": "info@dokas.eu",
+   "web": "www.dokas.eu"
+  },
+  "sitz_in_eu": true,
+  "eu_verantwortlicher": null,
+  "quelle": "https://dokas.eu/impressum/",
+  "sicher": true,
+  "hinweis": ""
+ },
  "Nobby": {
   "marke": "Nobby",
   "hersteller": {
