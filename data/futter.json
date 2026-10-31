@@ -1,4 +1,44 @@
 {
+ "31327-TRXI": {
+  "status": "gefunden",
+  "futtermittelart": "Ergänzungsfuttermittel",
+  "zusammensetzung": "Rinderhaut, Hühnerfleisch (28 %), Maisstärke, Glycerin, Sorbitol, Mineralstoffe",
+  "analytische_bestandteile": "Fettgehalt 2,7 %, Feuchtegehalt 13,4 %, Protein 76,1 %, Rohasche 2,6 %, Rohfaser 0,5 %",
+  "zusatzstoffe": "Technologische Zusatzstoffe: Konservierungsmittel",
+  "fuetterungsempfehlung": "",
+  "quelle": "https://trixie.shop/products/rolls-mit-huhn?variant=50295191929089",
+  "abgleich": "EAN 4011905313276 bzw. Art.-Nr. 31327 auf der Produktseite von trixie.shop gefunden"
+ },
+ "42743-TRXI": {
+  "status": "gefunden",
+  "futtermittelart": "Ergänzungsfuttermittel",
+  "zusammensetzung": "Getreide, Fisch und Fischnebenerzeugnisse (davon 8 % Lachs), Fleisch und tierische Nebenerzeugnisse, Öle und Fette, Maltodextrin, Katzenminze (0,5 %), Mineralstoffe",
+  "analytische_bestandteile": "Fettgehalt 5 %, Protein 11 %, Rohasche 5 %, Rohfaser 3 %",
+  "zusatzstoffe": "",
+  "fuetterungsempfehlung": "",
+  "quelle": "https://trixie.shop/products/cookies-mit-lachs-katzenminze?variant=46330055426305",
+  "abgleich": "Trixie-Art.-Nr. 42743, EAN 04011905427430, „Cookies mit Lachs & Katzenminze – Art.-Nr.: 42743, Inhalt/Gewicht: 50 g, Art des Futtermittels: Ergänzungsfuttermittel“"
+ },
+ "2788-TRXI": {
+  "status": "gefunden",
+  "futtermittelart": "Einzelfuttermittel",
+  "zusammensetzung": "100 % getrocknete Rinderhaut",
+  "analytische_bestandteile": "Fettgehalt 0,5 %, Feuchtegehalt 18,0 %, Protein 82,0 %",
+  "zusatzstoffe": "",
+  "fuetterungsempfehlung": "",
+  "quelle": "https://trixie.shop/products/kauknochen?variant=50295171711233",
+  "abgleich": "EAN 4011905027883 bzw. Art.-Nr. 2788 auf der Produktseite von trixie.shop gefunden"
+ },
+ "2789-TRXI": {
+  "status": "gefunden",
+  "futtermittelart": "Einzelfuttermittel",
+  "zusammensetzung": "100 % getrocknete Rinderhaut",
+  "analytische_bestandteile": "Fettgehalt 0,5 %, Feuchtegehalt 18,0 %, Protein 82,0 %",
+  "zusatzstoffe": "",
+  "fuetterungsempfehlung": "",
+  "quelle": "https://trixie.shop/products/kauknochen?variant=50295171744001",
+  "abgleich": "EAN 4011905027890 bzw. Art.-Nr. 2789 auf der Produktseite von trixie.shop gefunden"
+ },
  "9118680-WOK": {
   "status": "gefunden",
   "futtermittelart": "Ergänzungsfuttermittel für Katzen",
@@ -208,5 +248,205 @@
   "fuetterungsempfehlung": "Dokas Pferdefleisch Getrocknet ist ein Ergänzungsfuttermittel für Hunde. Als Belohnung zwischen den üblichen Mahlzeiten. Reduzierung der täglichen Futtermenge nach Bedarf. Stets ausreichend Trinkwasser bereitstellen. Nach Anbruch bitte kühl und trocken lagern.Frischebeutel verschließen und Inhalt bald verfüttern. Der im Beutel befindliche Absorber dient der Frische des Produktes und ist nicht zum Verzehr geeignet. Den Snack unter Aufsicht füttern.",
   "quelle": "https://www.zooplus.de/shop/hunde/hundesnacks/dokas/weitere/2092399?activeVariant=2092399.2",
   "abgleich": "EAN 4251276205491 exakt identisch mit der EAN der gewählten Variante auf der zooplus.de-Produktseite \"Dokas Pferdefleisch Getrocknet\"; Analysewerte aus der Analysetabelle der Seite (Dezimalkomma gesetzt)"
+ },
+ "08155-SLTE": {
+  "status": "gefunden",
+  "futtermittelart": "Ergänzungsfuttermittel für alle Nager und Zwergkaninchen",
+  "zusammensetzung": "Erbsenflocken, Leinsaat, Graspflanzensaat, Kanariengrassaat, Rapsöl, Brennnessel, Buchweizen, Hibiskusblüten 2,9%, Petersilie, Karotten, Hanfsaat, Fenchelsaat, Pfefferminze, Löwenzahn, Schwarzkümmelsaat, Ringelblumenblüten 0,4%",
+  "analytische_bestandteile": "Protein 18,3%, Fettgehalt 12,1%, Rohfaser 7,6%, Rohasche 4,2%, Calcium 3900 mg/kg, Phosphor 3500 mg/kg, Natrium 210 mg/kg",
+  "zusatzstoffe": "",
+  "fuetterungsempfehlung": "Zu füttern als Snack.",
+  "quelle": "https://www.jr-farm.de/jr-grainless-farmys-ringelblume-malve-140-g/08155",
+  "abgleich": "EAN 4024344081552 auf der Produktseite von jr-farm.de (Art.-Nr. 08155 in der URL)"
+ },
+ "07102-SLTE": {
+  "status": "gefunden",
+  "futtermittelart": "Einzelfuttermittel für alle Nager und Zwergkaninchen",
+  "zusammensetzung": "Petersilienstiele",
+  "analytische_bestandteile": "Rohprotein 18,7%, Rohfett 2,7%, Rohfaser 10,3%, Rohasche 14,2%, Calcium 9700 mg/kg, Phosphor 3500 mg/kg, Natrium 600 mg/kg",
+  "zusatzstoffe": "",
+  "fuetterungsempfehlung": "Gemischt mit Heu oder anderen Kräutern, oder zusätzlich zur täglichen Heuration.",
+  "quelle": "https://www.jr-farm.de/jr-farm-petersilienstiele-150-g/07102",
+  "abgleich": "EAN 4024344071027 auf der Produktseite von jr-farm.de (Art.-Nr. 07102 in der URL); Einzelfuttermittel – Zusammensetzung = Bezeichnung laut Herstellerseite"
+ },
+ "08230-SLTE": {
+  "status": "gefunden",
+  "futtermittelart": "Einzelfuttermittel für alle Nager und Zwergkaninchen",
+  "zusammensetzung": "Apfelbaumholz, unbehandelt",
+  "analytische_bestandteile": "Rohprotein 3,3%, Rohfett 0,5%, Rohfaser 40,5%, Rohasche 2,1%, Calcium 5300 mg/kg, Phosphor 800 mg/kg, Natrium 50 mg/kg.",
+  "zusatzstoffe": "",
+  "fuetterungsempfehlung": "Zu füttern als Snack.",
+  "quelle": "https://www.jr-farm.de/jr-farm-knabber-hoelzer-apfelbaum-100-g/08230",
+  "abgleich": "EAN 4024344082306 auf der Produktseite von jr-farm.de (Art.-Nr. 08230 in der URL); Einzelfuttermittel – Zusammensetzung = Bezeichnung laut Herstellerseite"
+ },
+ "07343-SLTE": {
+  "status": "gefunden",
+  "futtermittelart": "Ergänzungsfuttermittel für alle Nager und Zwergkaninchen außer Degus, Zwerghamster und Rennmäuse",
+  "zusammensetzung": "Mais, Weizen, Karotten, Leinsaat, La Plata Hirse, Erdnüsse, Apfel 6,5%, Manna Hirse, Rapsöl, geschälte Sonnenblumenkerne",
+  "analytische_bestandteile": "Rohprotein 9,5%, Rohfett 14,6%, Rohfaser 5,2%, Rohasche 2,0%, Calcium 876 mg/kg, Phosphor 1660 mg/kg, Natrium 299 mg/kg",
+  "zusatzstoffe": "",
+  "fuetterungsempfehlung": "Zu füttern als Snack.",
+  "quelle": "https://www.jr-farm.de/jr-farm-farmys-apfel-160g/07343",
+  "abgleich": "EAN 4024344073434 auf der Produktseite von jr-farm.de (Art.-Nr. 07343 in der URL)"
+ },
+ "18669-SLTE": {
+  "status": "gefunden",
+  "futtermittelart": "Ergänzungsfuttermittel für alle Nager und Zwergkaninchen",
+  "zusammensetzung": "Lignocellulose, pflanzliche Stärke, Bergwiesenheu 8,3%;",
+  "analytische_bestandteile": "Protein 2,2%, Fettgehalt 1,1%, Rohfaser 45,3%, Rohasche 14,9%, Calcium 42670 mg/kg, Phosphor 440 mg/kg, Natrium 480 mg/kg",
+  "zusatzstoffe": "",
+  "fuetterungsempfehlung": "Austauschen wenn verschmutzt.",
+  "quelle": "https://www.jr-farm.de/jr-farm-heu-tunnel-xxl-950-g/18669",
+  "abgleich": "EAN 4024344186691 auf der Produktseite von jr-farm.de (Art.-Nr. 18669 in der URL)"
+ },
+ "08227-SLTE": {
+  "status": "gefunden",
+  "futtermittelart": "Einzelfuttermittel für Zwergkaninchen und Nager",
+  "zusammensetzung": "Kürbiskerne, naturbelassen",
+  "analytische_bestandteile": "Rohprotein 29,9%, Rohfett 36,2%, Rohfaser 17,3%, Rohasche 3,3%, Calcium 890 mg/kg, Phosphor 8680 mg/kg, Natrium 100 mg/kg",
+  "zusatzstoffe": "",
+  "fuetterungsempfehlung": "Zu füttern als Snack.",
+  "quelle": "https://www.jr-farm.de/jr-farm-pure-kuerbiskerne-125-g/08227",
+  "abgleich": "EAN 4024344082276 auf der Produktseite von jr-farm.de (Art.-Nr. 08227 in der URL); Einzelfuttermittel – Zusammensetzung = Bezeichnung laut Herstellerseite"
+ },
+ "16255-SLTE": {
+  "status": "gefunden",
+  "futtermittelart": "Einzelfuttermittel für Zwergkaninchen und Nager",
+  "zusammensetzung": "Erbsenflocken, schonend vorgegart",
+  "analytische_bestandteile": "Rohprotein 20,2%, Rohfett 2,1%, Rohfaser 4,9%, Rohasche 2,8%, Calcium 800 mg/kg, Phosphor 3980 mg/kg, Natrium 90 mg/kg",
+  "zusatzstoffe": "",
+  "fuetterungsempfehlung": "Zu füttern als Snack.",
+  "quelle": "https://www.jr-farm.de/jr-farm-erbsenflocken-200-g/16255",
+  "abgleich": "EAN 4024344162558 auf der Produktseite von jr-farm.de (Art.-Nr. 16255 in der URL); Einzelfuttermittel – Zusammensetzung = Bezeichnung laut Herstellerseite"
+ },
+ "10889-SLTE": {
+  "status": "gefunden",
+  "futtermittelart": "Ergänzungsfuttermittel für Zwergkaninchen und Nager",
+  "zusammensetzung": "Erzeugnisse der Back- und Teigwarenindustrie 31,6%, Petersilie 25,4%, La Plata Hirse, Erbsenstärke, Maisflocken, Ringelblumenblüten 5%, Manna Hirse, Rapsöl",
+  "analytische_bestandteile": "Rohprotein 10,7%, Rohfett 3,7%, Rohfaser 6,2%, Rohasche 6,4%, Calcium 2910 mg/kg, Phosphor 1400 mg/kg, Natrium 540 mg/kg",
+  "zusatzstoffe": "",
+  "fuetterungsempfehlung": "Zu füttern als Snack.",
+  "quelle": "https://www.jr-farm.de/jr-farm-kraeuter-waffeltuete-60-g/10889",
+  "abgleich": "EAN 4024344108891 auf der Produktseite von jr-farm.de (Art.-Nr. 10889 in der URL)"
+ },
+ "16267-SLTE": {
+  "status": "gefunden",
+  "futtermittelart": "Ergänzungsfuttermittel für alle Nager und Zwergkaninchen außer Degus, Zwerghamster und Rennmäuse",
+  "zusammensetzung": "Mais, Weizen, Karotten, Leinsaat, La Plata Hirse, Erdnüsse, Manna Hirse, Rapsöl, gestreifte Sonnenblumenkerne, Erdbeeren 2,5%, Erbsenstärke, Rote Beete",
+  "analytische_bestandteile": "Protein 10%, Fettgehalt 15,3%, Rohfaser 5,2%, Rohasche 2%, Calcium 526 mg/kg, Phosphor 1750 mg/kg, Natrium 315 mg/kg",
+  "zusatzstoffe": "",
+  "fuetterungsempfehlung": "Zu füttern als Snack.",
+  "quelle": "https://www.jr-farm.de/jr-farm-erdbeer-herzchen-150-g/16267",
+  "abgleich": "EAN 4024344162671 auf der Produktseite von jr-farm.de (Art.-Nr. 16267 in der URL)"
+ },
+ "13686-SLTE": {
+  "status": "gefunden",
+  "futtermittelart": "Mischfuttermittel zur Verwendung als temporäres Hauptfutter für Igel",
+  "zusammensetzung": "Hermetialarven 20%, Geflügelprotein 16,8%, Kartoffeln, Lupinenflocken, Rapsöl, Shrimps 5%, Volleipulver, Geflügelfett, Fischmehl, Seidenraupenpuppen 3%, Rinderfett, Kartoffelprotein, Mehlwürmer 1%, Lignocellulose, Mineralstoffe, Leinsaat, Hefe, Zichorienwurzeln, Yucca schidigera, Löwenzahn, Ingwer, Birkenblätter, Brennnessel, Kamille, Koriander, Rosmarin, Salbei, Süßholzwurzel, Thymian, Mariendistelsaat, Artischocken",
+  "analytische_bestandteile": "Rohprotein 33,4%, Rohfett 28,5%, Rohfaser 4,8%, Rohasche 7,4%, Calcium 20770 mg/kg, Phosphor 8010 mg/kg, Natrium 2930 mg/kg",
+  "zusatzstoffe": "ernährungsphysiologische Zusatzstoffe: Vitamin A 9350 i.E., Vitamin E 65,5 i.E., Vitamin D3 585 i.E., Vitamin C 63,5 mg, Eisen(II)-sulfat Monohydrat 37,75 mg, Kupfer(II)-sulfat Pentahydrat 7,9 mg, Mangan(II)-carbonat 16,3 mg, Zinkoxid 46,5 mg, Calciumjodat wasserfrei 0,915 mg, Natriumselenit 0,14 mg, Technologische Zusatzstoffe: Antioxidationsmittel, sensorische Zusatzstoffe: Taurin (Aromastoff)",
+  "fuetterungsempfehlung": "Futternapf erst auffüllen, wenn fast restlos leer. Bitte täglich maximal soviel Futter verabreichen, wie in 24 Stunden komplett gefressen wird.",
+  "quelle": "https://www.jr-farm.de/jr-farm-igel-schmaus-getreidefrei-500g/13686",
+  "abgleich": "EAN 4024344136863 auf der Produktseite von jr-farm.de (Art.-Nr. 13686 in der URL)"
+ },
+ "14951-SLTE": {
+  "status": "gefunden",
+  "futtermittelart": "Ergänzungsfuttermittel für Ratten, Hamster, Mäuse und alle anderen gemischt ernährten Nager",
+  "zusammensetzung": "Mehlwürmer 97%, Hermetialarven, Rapsöl",
+  "analytische_bestandteile": "Rohprotein 49,6%, Rohfett 26%, Rohfaser 7,7%, Rohasche 3%, Calcium 3790 mg/kg, Phosphor 5880 mg/kg, Natrium 1620 mg/kg",
+  "zusatzstoffe": "",
+  "fuetterungsempfehlung": "Zu füttern als Snack.",
+  "quelle": "https://www.jr-farm.de/jr-farm-mehlwuermer-70-g/14951",
+  "abgleich": "EAN 4024344149511 auf der Produktseite von jr-farm.de (Art.-Nr. 14951 in der URL)"
+ },
+ "05706-SLTE": {
+  "status": "unvollständig",
+  "futtermittelart": "Einzelfuttermittel für alle Nager und Zwergkaninchen",
+  "zusammensetzung": "",
+  "analytische_bestandteile": "",
+  "zusatzstoffe": "",
+  "fuetterungsempfehlung": "Dem Tier sollte ständig ein Salzleckstein zur Verfügung stehen.",
+  "quelle": "https://www.jr-farm.de/jr-farm-salzleckstein-80-g/05706",
+  "abgleich": "EAN 4024344057069 auf der Produktseite von jr-farm.de (Art.-Nr. 05706 in der URL)"
+ },
+ "16241-SLTE": {
+  "status": "gefunden",
+  "futtermittelart": "Einzelfuttermittel für alle Nager und Zwergkaninchen",
+  "zusammensetzung": "Dillpflanze",
+  "analytische_bestandteile": "Protein 12,9%, Fettgehalt 4,3%, Rohfaser 19,6%, Rohasche 12,9%, Calcium 11900 mg/kg, Phosphor 3410 mg/kg, Natrium 100 mg/kg",
+  "zusatzstoffe": "",
+  "fuetterungsempfehlung": "Zu füttern als Snack.",
+  "quelle": "https://www.jr-farm.de/jr-farm-ein-stueck-natur-dill-ernte-80-g/16241",
+  "abgleich": "EAN 4024344162411 auf der Produktseite von jr-farm.de (Art.-Nr. 16241 in der URL); Einzelfuttermittel – Zusammensetzung = Bezeichnung laut Herstellerseite"
+ },
+ "19226-SLTE": {
+  "status": "unvollständig",
+  "futtermittelart": "",
+  "zusammensetzung": "",
+  "analytische_bestandteile": "",
+  "zusatzstoffe": "",
+  "fuetterungsempfehlung": "",
+  "quelle": "https://www.jr-farm.de/jr-farm-back-to-instinct-buddel-box-5-l/19226",
+  "abgleich": "EAN 4024344192265 auf der Produktseite von jr-farm.de (Art.-Nr. 19226 in der URL)"
+ },
+ "19225-SLTE": {
+  "status": "gefunden",
+  "futtermittelart": "",
+  "zusammensetzung": "Drops: Erbsenflocken, Karotten 10,6%, Rapsöl, Löwenzahn 3,6%, Bergwiesenheu, Petersilie, Rote Beete 2,2%, Spitzwegerich, Brennnessel 1,6%, Haferpflanze",
+  "analytische_bestandteile": "Drops: Protein 16,4%, Fettgehalt 6,7%, Rohfaser 6,4%, Rohasche 3,5%, Calcium 1670 mg/kg, Phosphor 3210 mg/kg, Natrium 480 mg/kg",
+  "zusatzstoffe": "",
+  "fuetterungsempfehlung": "",
+  "quelle": "https://www.jr-farm.de/jr-farm-back-to-instinct-aktiv-teppich-175-g/19225",
+  "abgleich": "EAN 4024344192258 auf der Produktseite von jr-farm.de (Art.-Nr. 19225 in der URL)"
+ },
+ "20454-SLTE": {
+  "status": "gefunden",
+  "futtermittelart": "Einzelfuttermittel für alle Nager, Zwergkaninchen und Ziervögel",
+  "zusammensetzung": "Fenchel",
+  "analytische_bestandteile": "Rohprotein 19,4%, Rohfett 3,1%, Rohfaser 14,9%, Rohasche 13%, Calcium 7080 mg/kg, Phosphor 3220 mg/kg, Natrium 5470 mg/kg",
+  "zusatzstoffe": "",
+  "fuetterungsempfehlung": "Zu füttern als Snack.",
+  "quelle": "https://www.jr-farm.de/jr-farm-fenchel-staebchen-15g/20454",
+  "abgleich": "EAN 4024344204548 auf der Produktseite von jr-farm.de (Art.-Nr. 20454 in der URL); Einzelfuttermittel – Zusammensetzung = Bezeichnung laut Herstellerseite"
+ },
+ "07720-SLTE": {
+  "status": "kein_futter",
+  "begruendung": "Kleintier-Toilette, laut Hersteller „100% Natur-Ton ohne chemische Zusätze“",
+  "quelle": "https://www.jr-farm.de"
+ },
+ "55622-TRXI": {
+  "status": "kein_futter",
+  "begruendung": "Meisenknödelhalter aus Metall (Zoodrop-Beschreibung: „Metall, pulverbeschichtet … für bis zu 8 Meisenknödel“)",
+  "quelle": "Zoodrop-Feed"
+ },
+ "55623-TRXI": {
+  "status": "kein_futter",
+  "begruendung": "Meisenknödelhalter aus Metall (Zoodrop-Beschreibung: „Metall, pulverbeschichtet … für bis zu 4 Meisenknödel“)",
+  "quelle": "Zoodrop-Feed"
+ },
+ "0021230-PFI": {
+  "status": "kein_futter",
+  "begruendung": "leere Spenderbox für Meisenknödel („ohne Inhalt“)",
+  "quelle": "Zoodrop-Feed"
+ },
+ "0021006-PFI": {
+  "status": "kein_futter",
+  "begruendung": "leere Spenderbox für das Vogel-Buffet („auspacken, befüllen, aufhängen“)",
+  "quelle": "Zoodrop-Feed"
+ },
+ "0021310-PFI": {
+  "status": "kein_futter",
+  "begruendung": "Futterspender für 2 Maxi-Vogelknödel (pfiffikus.de, Kategorie Zubehör > Futterspender, EAN 4000593213104)",
+  "quelle": "https://www.pfiffikus.de/Zubehoer/Futterspender/Maxi-Vogelknoedel-Spenderbox::77.html"
+ },
+ "0021036-PFI": {
+  "status": "kein_futter",
+  "begruendung": "Futterhaus für das Vogel-Bistro (Zoodrop-Beschreibung: „Futterhaus speziell für Pfiffikus Vogel-Bistro“)",
+  "quelle": "Zoodrop-Feed"
+ },
+ "43002-HAG": {
+  "status": "kein_futter",
+  "begruendung": "Katzenspielzeug mit Grasgarten; beiliegend nur Katzengras-Saat zum Anpflanzen (Zoodrop-Beschreibung)",
+  "quelle": "Zoodrop-Feed"
  }
 }

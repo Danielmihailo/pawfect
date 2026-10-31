@@ -430,16 +430,16 @@ def product_tags(rep, compliant):
 
 def create_grouped(key, group, compliant):
     q=[(r,row_price(r)) for r in group if is_available(r) and row_price(r) is not None][:100]
-    if not q: return "drop", None
+    if not q: return "drop", None, 0
     rows=[r for r,_ in q]
     imgs_urls=group_images(rows)
-    if SKIP_NO_IMAGE and not imgs_urls: return "noimg", None
+    if SKIP_NO_IMAGE and not imgs_urls: return "noimg", None, 0
     art0=((rows[0].get("ARTIKELNUMMER","") or "img").strip().replace(" ","-")) or "img"
     imgs=[]
     with ThreadPoolExecutor(max_workers=5) as ex:
         for idx,b in enumerate(ex.map(fetch_image, imgs_urls)):
             if b: imgs.append({"attachment":b,"filename":f"{art0}-{idx+1}.jpg"})
-    if SKIP_NO_IMAGE and not imgs: return "noimg", None
+    if SKIP_NO_IMAGE and not imgs: return "noimg", None, 0
     rep=rows[0]; ptype,tags=product_tags(rep, compliant); multi=len(q)>1
     labels,ptitle=variant_labels([(r.get("TITEL") or "").strip() for r in rows])
     variants=[]
@@ -461,10 +461,10 @@ def create_grouped(key, group, compliant):
         ids[bc]={"p":p["id"],"v":var["id"],"i":var.get("inventory_item_id")}
         um=unit_measure(by_bc.get(bc) or {})
         if um: units.append((var["id"],um))
-    set_unit_prices(p["id"], units)
-    return "created", ids
+    return "created", ids, set_unit_prices(p["id"], units)
 
-def run_full(rows, dry, limit):
+def run_full(rows, dry, limit, only_gated=False):
+    """only_gated: nur Produkte mit Tag lp-gesperrt neu prüfen (nach neuen GPSR-/Futterdaten), nichts anlegen"""
     feed={(r.get("EAN") or "").strip(): r for r in rows if (r.get("EAN") or "").strip()}
     known=set(load_state().keys())
     loc_id=None if dry else get_location_id()
@@ -473,6 +473,7 @@ def run_full(rows, dry, limit):
     groups=group_rows(rows); log(f"{len(groups)} Artikel-Gruppen (SUCHNUMMER).")
     for key,group in groups:
         pid=next((state[(r.get('EAN') or '').strip()]["p"] for r in group if (r.get('EAN') or '').strip() in state), None)
+        if only_gated and not (pid and GESPERRT_TAG in prods[pid]["tags"]): continue
         live=[r for r in group if row_price(r) is not None and r.get("VERKAUFSSTATUS","").strip()=="Im Verkauf"]
         rep=(live or group)[0]
         _,tags0=categories(rep)
@@ -497,12 +498,16 @@ def run_full(rows, dry, limit):
                     st["grundpreis"]+=set_unit_prices(pid, units)
             else:
                 if not any(is_available(r) and row_price(r) is not None for r in group): st["nicht_verkaufbar"]+=1; continue
-                if not compliant: st["neu_gesperrt_gpsr" if not ok_gpsr else "neu_gesperrt_futter"]+=1
-                if dry: st["neu"]+=1; continue
-                res,ids=create_grouped(key, group, compliant)
+                gate=None if compliant else ("neu_gesperrt_gpsr" if not ok_gpsr else "neu_gesperrt_futter")
+                if dry:
+                    st["neu"]+=1
+                    if gate: st[gate]+=1
+                    continue
+                res,ids,nup=create_grouped(key, group, compliant)
                 if res=="created":
                     for bc,vm in ids.items(): state[bc]=vm
-                    st["neu"]+=1; st["neu_varianten"]+=len(ids)
+                    st["neu"]+=1; st["neu_varianten"]+=len(ids); st["grundpreis"]+=nup
+                    if gate: st[gate]+=1
                 else: st[res]+=1
         except Exception as e: st["fehler"]+=1; log("ERR",key,str(e)[:160])
         done+=1
@@ -511,7 +516,7 @@ def run_full(rows, dry, limit):
             log(f"... {done}/{len(groups)} Gruppen {dict(st)}")
         if limit and (st["neu"]+sum(v for k,v in st.items() if k.startswith("bestehend_")))>=limit: break
     # Produkte, deren Artikel ganz aus dem Feed verschwunden sind
-    if not limit:
+    if not limit and not only_gated:
         for pid,pi in prods.items():
             if pid in seen_pids or not managed(pi,known,feed): continue
             for bc in pi["bcs"]:
@@ -521,7 +526,7 @@ def run_full(rows, dry, limit):
                 st["verschwunden_entwurf"]+=1
                 if not dry: api("PUT",f"products/{pid}.json",{"product":{"id":pid,"status":"draft"}})
     if not dry: save_state(state)
-    log("\n=== Full ==="); [log(f"{k:22}: {v}") for k,v in sorted(st.items())]
+    log("\n=== Gesperrte neu geprüft ===" if only_gated else "\n=== Full ==="); [log(f"{k:22}: {v}") for k,v in sorted(st.items())]
     if HERSTELLER is None: log("HINWEIS: data/hersteller.json fehlt – GPSR-Sperre inaktiv")
     if FUTTER is None: log("HINWEIS: data/futter.json fehlt – Futter-Sperre inaktiv")
 
@@ -656,7 +661,7 @@ def audit(rows):
 # ---------- Main ----------
 def main():
     ap=argparse.ArgumentParser()
-    ap.add_argument("--mode",choices=["full","update","retag","collections","wipe","audit","seiten","versand"],default="full")
+    ap.add_argument("--mode",choices=["full","update","gesperrt","retag","collections","wipe","audit","seiten","versand"],default="full")
     ap.add_argument("--dry-run",action="store_true"); ap.add_argument("--limit",type=int,default=0); ap.add_argument("--local",default="")
     args=ap.parse_args()
     if args.mode=="collections":
@@ -674,6 +679,7 @@ def main():
     rows=load_rows(args.local); log(f"{len(rows)} Zeilen geladen.")
     if args.mode=="audit": audit(rows); return
     if args.mode=="update": run_update(rows, args.dry_run); return
+    if args.mode=="gesperrt": run_full(rows, args.dry_run, args.limit, only_gated=True); return
     if args.mode=="retag":
         state,prods=read_store(); st=collections.Counter()
         for key,group in group_rows(rows):
