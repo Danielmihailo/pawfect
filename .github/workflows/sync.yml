@@ -10,7 +10,7 @@ on:
       mode:
         description: "Sync-Modus"
         type: choice
-        options: [update, gesperrt, full, audit, seiten, versand, retag, collections, wipe]
+        options: [update, gesperrt, rechtstexte, full, audit, seiten, versand, retag, collections, wipe]
         default: update
 
 permissions:

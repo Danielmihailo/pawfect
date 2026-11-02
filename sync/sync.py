@@ -3,7 +3,11 @@
 lovepawfect <- Zoodrop Sync  (Varianten gruppiert nach SUCHNUMMER)
   --mode full        : Gesamtfeed -> neue Produkte anlegen (inkl. Bilder) und alle bestehenden komplett pflegen:
                        Preis, Bestand, Status, Tags, Beschreibung (+ Futterangaben), Hersteller, Grundpreis
-  --mode update      : Gesamtfeed -> nur Preis, Bestand und Verkaufbarkeit, nur Abweichungen (schnell)
+  --mode update      : Gesamtfeed -> nur Preis, Bestand und Verkaufbarkeit, nur Abweichungen (schnell);
+                       danach Rechtstexte abgleichen (wie --mode rechtstexte)
+  --mode gesperrt    : nur Produkte mit Tag lp-gesperrt neu prüfen (nach neuen GPSR-/Futterdaten)
+  --mode rechtstexte : AGB, Widerrufsbelehrung, Datenschutz von der IT-Recht Kanzlei holen und in die Shopify-Rechtstexte
+                       schreiben, Versandseite aus den Versandeinstellungen erzeugen (nur bei Änderung)
   --mode audit       : nur lesen: Shop-Einstellungen, Versand, Rechtstexte, Datenlage
   --mode retag       : nur Tags/Produkttyp
   --mode collections : Smart Collections (Welten + Kategorien) idempotent
@@ -559,6 +563,89 @@ def make_pages():
         else:
             api("POST","pages.json",body); log("Seite angelegt:",pg["handle"])
 
+# ---------- Rechtstexte ----------
+# Hosting-Links der IT-Recht Kanzlei liefern immer die aktuelle Fassung; Änderungen der Kanzlei kommen so mit dem nächsten Lauf in den Shop.
+ITRK = {"TERMS_OF_SERVICE": "https://itrk.legal/1DXw.2Y.1dk7-iframe.html",   # AGB mit Kundeninformationen
+        "REFUND_POLICY":    "https://itrk.legal/1DXw.2J.1dk7-iframe.html",   # Widerrufsbelehrung & Widerrufsformular
+        "PRIVACY_POLICY":   "https://itrk.legal/1DXw.8U.1dk7-iframe.html"}   # Datenschutzerklärung
+LAND = {"DE":"Deutschland","AT":"Österreich","BE":"Belgien","DK":"Dänemark","LU":"Luxemburg","NL":"Niederlande"}
+# Lieferzeit ab Bestellung in Werktagen: (Lagerware, Ware aus dem Zoodrop-Fulfillment). DE wie im Theme (ship_days_min/max, +2/+3).
+LIEFERZEIT = {"DE": ("2–4", "4–7"), "AUSLAND": ("3–6", "5–9")}
+POLICY_Q = "{ shop { shopPolicies { type body url } } }"
+POLICY_MUT = "mutation($p: ShopPolicyInput!) { shopPolicyUpdate(shopPolicy: $p) { shopPolicy { type url } userErrors { field message } } }"
+
+def policy_plain(h):
+    """Vergleichsform: nur der Text, ohne Abruf-Zeitstempel und Leerraum (Shopify formt das HTML beim Speichern um)"""
+    t = htmlmod.unescape(re.sub(r"<[^>]+>", "", h or ""))
+    t = re.sub(r"Stand:\s*\d{1,2}\.\d{1,2}\.\d{4},?\s*\d{1,2}:\d{2}(:\d{2})?", "", t)
+    return re.sub(r"\s+", "", t)
+
+def itrk_text(url):
+    req = urllib.request.Request(url, headers={"User-Agent": "lovepawfect-sync (Rechtstexte)"})
+    with urllib.request.urlopen(req, timeout=60) as r: page = r.read().decode("utf-8", "replace")
+    m = re.search(r"(?is)<body[^>]*>(.*)</body>", page)
+    body = re.sub(r"(?is)<(script|style|iframe)\b.*?</\1>", "", m.group(1) if m else page).strip()
+    if len(policy_plain(body)) < 1000: raise RuntimeError(f"Rechtstext leer oder unvollständig: {url}")
+    return body
+
+def eur(a): return f"{a:.2f}".replace(".", ",") + " €"
+
+def versand_html():
+    """Versand & Zahlung aus den echten Versandeinstellungen (Standardprofil): Länder, Kosten, Gratisgrenze, Lieferzeit"""
+    zonen = []
+    for prof in gql(DELIVERY_Q)["deliveryProfiles"]["nodes"]:
+        if not prof.get("default"): continue
+        for g in prof.get("profileLocationGroups") or []:
+            for z in g["locationGroupZones"]["nodes"]:
+                cc = sorted((c["code"].get("countryCode") for c in z["zone"]["countries"] if c["code"].get("countryCode")), key=lambda c: LAND.get(c, c))
+                preise, frei = [], None
+                for m in z["methodDefinitions"]["nodes"]:
+                    if not m.get("active"): continue
+                    p = float((((m.get("rateProvider") or {}).get("price")) or {}).get("amount") or 0)
+                    ab = [float((c.get("conditionCriteria") or {}).get("amount") or 0) for c in m.get("methodConditions") or []
+                          if c.get("field") == "TOTAL_PRICE" and c.get("operator") == "GREATER_THAN_OR_EQUAL_TO"]
+                    if p == 0 and ab: frei = min(ab + ([frei] if frei is not None else []))
+                    else: preise.append(p)
+                if cc and (preise or frei is not None): zonen.append((cc, min(preise) if preise else 0.0, frei))
+    fremd = sorted({c for cc, _, _ in zonen for c in cc} - set(LAND))
+    if fremd or not zonen: raise RuntimeError(f"Versandzonen nicht auswertbar (Länder ohne Namen: {fremd}) – LAND ergänzen")
+    zonen.sort(key=lambda z: (z[0] != ["DE"], z[1]))
+    zeilen = []
+    for cc, preis, frei in zonen:
+        kosten = eur(preis) if preis else "kostenlos"
+        if frei is not None and preis: kosten += f", ab {eur(frei)} Bestellwert versandkostenfrei"
+        lager, lieferant = LIEFERZEIT["DE" if cc == ["DE"] else "AUSLAND"]
+        zeilen.append(f"<tr><td>{', '.join(LAND[c] for c in cc)}</td><td>{kosten}</td><td>{lager} Werktage<br>Lieferantenware: {lieferant} Werktage</td></tr>")
+    alle = sorted({c for cc, _, _ in zonen for c in cc}, key=lambda c: (c != "DE", LAND[c]))
+    return ("<h1>Versand &amp; Zahlung</h1>"
+            "<h2>Liefergebiet</h2>"
+            f"<p>Wir liefern in diese Länder: {', '.join(LAND[c] for c in alle)}. In andere Länder liefern wir nicht.</p>"
+            "<h2>Versandkosten und Lieferzeit</h2>"
+            "<table><thead><tr><th>Lieferland</th><th>Versandkosten</th><th>Lieferzeit ab Bestellung</th></tr></thead>"
+            f"<tbody>{''.join(zeilen)}</tbody></table>"
+            "<p>Die erste Lieferzeit gilt für Artikel, die bei uns auf Lager sind. Artikel, die wir erst bei unserem Lieferanten "
+            "abrufen, sind auf der Produktseite mit „versandfertig in 3–5 Werktagen“ gekennzeichnet; für sie gilt die zweite Lieferzeit. "
+            "Wir versenden mit DPD oder DHL.</p>"
+            "<p>Alle Preise sind Endpreise zuzüglich der genannten Versandkosten. Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.</p>"
+            "<h2>Zahlungsarten</h2>"
+            "<p>Die akzeptierten Zahlungsarten siehst du unten auf jeder Seite und vor dem Bezahlen im Checkout.</p>")
+
+def set_rechtstexte(dry=False):
+    try:
+        sc = {s["handle"] for s in gql("{ currentAppInstallation { accessScopes { handle } } }")["currentAppInstallation"]["accessScopes"]}
+        if "write_legal_policies" not in sc: log("RECHTSTEXTE: der App fehlt das Recht write_legal_policies (vorhanden:", ", ".join(sorted(sc)), ")")
+    except Exception as e: log("RECHTSTEXTE: Rechte nicht lesbar:", str(e)[:200])
+    ist = {p["type"]: p for p in gql(POLICY_Q)["shop"]["shopPolicies"]}
+    soll = {t: itrk_text(u) for t, u in ITRK.items()}
+    soll["SHIPPING_POLICY"] = versand_html()
+    for t, body in soll.items():
+        if policy_plain(body) == policy_plain((ist.get(t) or {}).get("body")): log("RECHTSTEXTE unverändert:", t); continue
+        if dry: log("RECHTSTEXTE [DRY] würde setzen:", t, len(body), "Zeichen"); continue
+        r = gql(POLICY_MUT, {"p": {"type": t, "body": body}})["shopPolicyUpdate"]
+        if r["userErrors"]: raise RuntimeError(f"{t}: {json.dumps(r['userErrors'], ensure_ascii=False)}")
+        log("RECHTSTEXTE gesetzt:", t, len(body), "Zeichen ->", (r.get("shopPolicy") or {}).get("url"))
+    for p in gql(POLICY_Q)["shop"]["shopPolicies"]: log("RECHTSTEXTE jetzt:", p["type"], len(p.get("body") or ""), "Zeichen", p.get("url"))
+
 VERSAND_Q="""{ deliveryProfiles(first: 5) { nodes { id name default profileLocationGroups { locationGroup { id } locationGroupZones(first: 30) { nodes {
   zone { id name countries { code { countryCode restOfWorld } } }
   methodDefinitions(first: 30) { nodes { id name active rateProvider { ... on DeliveryRateDefinition { price { amount } } } } } } } } } } }"""
@@ -661,7 +748,7 @@ def audit(rows):
 # ---------- Main ----------
 def main():
     ap=argparse.ArgumentParser()
-    ap.add_argument("--mode",choices=["full","update","gesperrt","retag","collections","wipe","audit","seiten","versand"],default="full")
+    ap.add_argument("--mode",choices=["full","update","gesperrt","retag","collections","wipe","audit","seiten","versand","rechtstexte"],default="full")
     ap.add_argument("--dry-run",action="store_true"); ap.add_argument("--limit",type=int,default=0); ap.add_argument("--local",default="")
     args=ap.parse_args()
     if args.mode=="collections":
@@ -673,12 +760,17 @@ def main():
         make_collections(); return
     if args.mode=="seiten": make_pages(); return
     if args.mode=="versand": set_versand(); return
+    if args.mode=="rechtstexte": set_rechtstexte(args.dry_run); return
     if args.mode=="wipe":
         if args.dry_run: log("[DRY-RUN] wuerde alle Produkte loeschen."); return
         wipe_all(); return
     rows=load_rows(args.local); log(f"{len(rows)} Zeilen geladen.")
     if args.mode=="audit": audit(rows); return
-    if args.mode=="update": run_update(rows, args.dry_run); return
+    if args.mode=="update":
+        run_update(rows, args.dry_run)
+        try: set_rechtstexte(args.dry_run)
+        except Exception as e: log("RECHTSTEXTE FEHLER (Sync selbst ist durchgelaufen):", str(e)[:400])
+        return
     if args.mode=="gesperrt": run_full(rows, args.dry_run, args.limit, only_gated=True); return
     if args.mode=="retag":
         state,prods=read_store(); st=collections.Counter()
