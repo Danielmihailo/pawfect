@@ -17,6 +17,8 @@ lovepawfect <- Zoodrop Sync  (Varianten gruppiert nach SUCHNUMMER)
 
 Gruppierung: alle Zeilen mit gleicher SUCHNUMMER = EIN Produkt; jede Zeile (EAN) = eine Variante.
 Preisregel: Verkaufspreis = EK*FACTOR, gedeckelt auf UVP-0,01, Marge >= MIN_MARGIN, Charm x,99.
+Nicht verkauft wird, was weniger als MIN_MARGE_PCT echte Marge (Preis - EK brutto) bringt oder ab GRATIS_AB
+durch den Gratisversand Verlust macht (Marktvergleich 02.11.2026: solche Artikel gibt es anderswo meist billiger).
 Betreiber ist Kleinunternehmer (§ 19 UStG): keine USt auf den Verkauf, aber auch kein Vorsteuerabzug.
 Die Margenprüfung (Preis/(1+MwSt) - EK) entspricht Preis - EK brutto >= MIN_MARGIN*(1+MwSt), ist also vorsichtig genug.
 Verkaufbar: Im Verkauf und (Bestand > 0 oder Fullfillment) und rentabel. Ausverkauft (Im Verkauf, Bestand 0)
@@ -33,6 +35,11 @@ TOKEN  = os.environ.get("SHOPIFY_ACCESS_TOKEN", "")
 APIV   = os.environ.get("SHOPIFY_API_VERSION", "2026-01")
 FACTOR = float(os.environ.get("PRICE_FACTOR", "1.7"))
 MIN_MARGIN = float(os.environ.get("MIN_MARGIN", "0.30"))
+MIN_MARGE_PCT = float(os.environ.get("MIN_MARGE_PCT", "0.15"))   # echte Marge (Preis − EK brutto) / Preis, darunter nicht verkaufen
+VERSAND_DE = 6.99          # Kunde zahlt in DE
+GRATIS_AB = 59.0           # ab diesem Warenwert versandkostenfrei in DE
+VERSAND_EK = 5.99 * 1.19   # Zoodrop-Versand DE brutto (kein Vorsteuerabzug)
+ZAHLUNG = (0.0299, 0.39)   # Zahlungsgebühr grob (Anteil, fix) – Schätzung
 STATE_FILE = os.environ.get("STATE_FILE", "sync_state.json")
 SKIP_NO_IMAGE = os.environ.get("SKIP_NO_IMAGE", "1") == "1"
 FULL_URL   = "https://www.zoodrop.de/csv/download/zoodrop_utf8.csv"
@@ -162,7 +169,11 @@ def compute_gross(ek, uvp, vat):
     if (g/(1.0+vat/100.0))-ek < MIN_MARGIN: return None
     charm=float(int(g))+0.99
     if charm>ek and (cap is None or charm<=cap) and abs(charm-g)<=1.0: g=charm
-    return round(g,2)
+    g=round(g,2)
+    marge=g-ek*(1.0+vat/100.0)                  # Kleinunternehmer: Einkauf zählt brutto
+    if marge/g < MIN_MARGE_PCT: return None     # UVP nur knapp über dem Einkauf: Preis wäre fast der EK, am Markt meist billiger
+    if g>=GRATIS_AB and marge-VERSAND_EK-(ZAHLUNG[0]*g+ZAHLUNG[1]) < 0: return None   # Gratisversand würde die Marge auffressen
+    return g
 
 def row_price(r): return compute_gross(fnum(r.get("VERKAUFSPREIS")), fnum(r.get("UVP")), fnum(r.get("MWST") or "19"))
 
@@ -660,12 +671,10 @@ def set_rechtstexte(dry=False):
 VERSAND_Q="""{ deliveryProfiles(first: 5) { nodes { id name default profileLocationGroups { locationGroup { id } locationGroupZones(first: 30) { nodes {
   zone { id name countries { code { countryCode restOfWorld } } }
   methodDefinitions(first: 30) { nodes { id name active rateProvider { ... on DeliveryRateDefinition { price { amount } } }
-    methodConditions { field operator conditionCriteria { __typename ... on MoneyV2 { amount } } } } } } } } } } } }"""
+    methodConditions { field operator conditionCriteria { __typename ... on MoneyV2 { amount } } } } } } } } } } }"""
 PROFILE_MUT="mutation($id: ID!, $p: DeliveryProfileInput!) { deliveryProfileUpdate(id: $id, profile: $p) { profile { id } userErrors { field message } } }"
 NACHBARLAENDER=["AT","BE","LU","NL","DK"]   # Zoodrop liefert nur nach DE + diese Länder
-VERSAND_DE=6.99        # Kunde zahlt in DE (Zoodrop berechnet 5,99 netto = 7,13 brutto)
-GRATIS_AB=59.0         # ab diesem Warenwert versandkostenfrei in DE
-VERSAND_NACHBAR=13.99  # nur beim Neuanlegen der Nachbarzone
+VERSAND_NACHBAR=13.99  # nur beim Neuanlegen der Nachbarzone (VERSAND_DE, GRATIS_AB stehen oben bei der Preisregel)
 
 def de_soll():
     """DE: Standard VERSAND_DE bis GRATIS_AB-0,01 und Standard 0,00 ab GRATIS_AB – nie zwei Optionen zugleich"""
