@@ -129,6 +129,16 @@
   "quelle": "https://trixie.shop/products/maulhygiene-tabletten",
   "abgleich": "EAN 4011905258225 bzw. Art.-Nr. 25822 auf der Produktseite von trixie.shop gefunden („Maulhygiene-Tabletten“)"
  },
+ "25833-TRXI": {
+  "status": "gefunden",
+  "futtermittelart": "Ergänzungsfuttermittel",
+  "zusammensetzung": "Milch und Molkereierzeugnisse, pflanzliche Nebenerzeugnisse, Öle und Fette, Dextrose, Dicalciumphosphat",
+  "analytische_bestandteile": "Fettgehalt 18,9 %, Protein 28,8 %, Rohasche 5,7 %, Rohfaser 0,9 %",
+  "zusatzstoffe": "Ernährungsphysiologische Zusatzstoffe: Vit. A 1 IU, Vit. B 1 60 mg, Vit. B 2 20 mg, Vit. B 6 30 mg, Vit. C 120 mg, Vit. D 3 2,000 IU, Vit. E 200 mg",
+  "fuetterungsempfehlung": "",
+  "quelle": "https://trixie.shop/products/milchersatz-pulver",
+  "abgleich": "EAN 4011905258331 bzw. Art.-Nr. 25833 auf der Produktseite von trixie.shop gefunden („Milchersatz-Pulver“)"
+ },
  "42716-TRXI": {
   "status": "gefunden",
   "futtermittelart": "Ergänzungsfuttermittel",
@@ -149,6 +159,26 @@
   "quelle": "https://trixie.shop/products/lehmstein-mit-karotte",
   "abgleich": "EAN 4011905601465 bzw. Art.-Nr. 60146 auf der Produktseite von trixie.shop gefunden („Lehmstein mit Karotte“)"
  },
+ "31656-TRXI": {
+  "status": "gefunden",
+  "futtermittelart": "Ergänzungsfuttermittel",
+  "zusammensetzung": "Hühnerfleisch (70 %), Glycerin, Hafer, Sojaprotein, Tapiokastärke, Hefen, Mineralstoffe",
+  "analytische_bestandteile": "Fettgehalt 3,0 %, Feuchtegehalt 17,0 %, Protein 39,0 %, Rohasche 3,0 %, Rohfaser 1,7 %",
+  "zusatzstoffe": "",
+  "fuetterungsempfehlung": "",
+  "quelle": "https://trixie.shop/products/mini-pretzels-mit-huhn",
+  "abgleich": "EAN 4011905316567 bzw. Art.-Nr. 31656 auf der Produktseite von trixie.shop gefunden („Mini Pretzels mit Huhn“)"
+ },
+ "31519-TRXI": {
+  "status": "gefunden",
+  "futtermittelart": "Ergänzungsfuttermittel",
+  "zusammensetzung": "Getreide, pflanzliche Nebenerzeugnisse, Fleisch und tierische Nebenerzeugnisse, pflanzliche Eiweißextrakte, Öle und Fette (4 % Lachsöl, entspr. 1,2 % Omega-3 und 0,1 % Omega-6), Propylenglycol",
+  "analytische_bestandteile": "Fettgehalt 6 %, Feuchtegehalt 17 %, Protein 17 %, Rohasche 4 %, Rohfaser 2 %",
+  "zusatzstoffe": "Technologische Zusatzstoffe: Konservierungsmittel; Sensorische Zusatzstoffe: Farbstoff 1",
+  "fuetterungsempfehlung": "",
+  "quelle": "https://trixie.shop/products/junior-soft-snack-dots",
+  "abgleich": "EAN 4011905315195 bzw. Art.-Nr. 31519 auf der Produktseite von trixie.shop gefunden („Junior Soft Snack Dots“)"
+ },
  "31518-TRXI": {
   "status": "gefunden",
   "futtermittelart": "Ergänzungsfuttermittel",
@@ -158,6 +188,16 @@
   "fuetterungsempfehlung": "",
   "quelle": "https://trixie.shop/products/junior-soft-snack-bones",
   "abgleich": "EAN 4011905315188 bzw. Art.-Nr. 31518 auf der Produktseite von trixie.shop gefunden („Junior Soft Snack Bones“)"
+ },
+ "42682-TRXI": {
+  "status": "gefunden",
+  "futtermittelart": "Ergänzungsfuttermittel",
+  "zusammensetzung": "Thunfisch, Hühnerbrust, Shrimps (6 %), Tapiokastärke",
+  "analytische_bestandteile": "Fettgehalt 0,1 %, Feuchtegehalt 90,0 %, Protein 6,5 %, Rohasche 2,0 %, Rohfaser 1,0 %",
+  "zusatzstoffe": "Ernährungsphysiologische Zusatzstoffe: Calcium-D-Pantothenat 1 mg, Nicotinsäure 1,47 mg, Taurin 800 mg, Vit. A 680 IU, Vit. A 780 IU, Vit. B 2 0,29 mg, Vit. D 3 210 IU, Vit. D 3 5,25 IU, Vit. E 0,75 mg",
+  "fuetterungsempfehlung": "",
+  "quelle": "https://trixie.shop/products/creamy-snacks-shrimp",
+  "abgleich": "EAN 4011905426822 bzw. Art.-Nr. 42682 auf der Produktseite von trixie.shop gefunden („Creamy Snack mit Shrimps“)"
  },
  "31548-TRXI-VAR": {
   "status": "gefunden",
