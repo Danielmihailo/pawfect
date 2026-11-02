@@ -636,15 +636,24 @@ def set_rechtstexte(dry=False):
         if "write_legal_policies" not in sc: log("RECHTSTEXTE: der App fehlt das Recht write_legal_policies (vorhanden:", ", ".join(sorted(sc)), ")")
     except Exception as e: log("RECHTSTEXTE: Rechte nicht lesbar:", str(e)[:200])
     ist = {p["type"]: p for p in gql(POLICY_Q)["shop"]["shopPolicies"]}
-    soll = {t: itrk_text(u) for t, u in ITRK.items()}
-    soll["SHIPPING_POLICY"] = versand_html()
+    soll, fehler = {}, []   # jeder Text für sich: ein Fehler hält die anderen nicht auf
+    for t, u in ITRK.items():
+        try: soll[t] = itrk_text(u)
+        except Exception as e: fehler.append(f"{t}: Abruf fehlgeschlagen ({str(e)[:150]})")
+    try: soll["SHIPPING_POLICY"] = versand_html()
+    except Exception as e: fehler.append(f"SHIPPING_POLICY: {str(e)[:200]}")
     for t, body in soll.items():
         if policy_plain(body) == policy_plain((ist.get(t) or {}).get("body")): log("RECHTSTEXTE unverändert:", t); continue
         if dry: log("RECHTSTEXTE [DRY] würde setzen:", t, len(body), "Zeichen"); continue
         r = gql(POLICY_MUT, {"p": {"type": t, "body": body}})["shopPolicyUpdate"]
-        if r["userErrors"]: raise RuntimeError(f"{t}: {json.dumps(r['userErrors'], ensure_ascii=False)}")
+        if r["userErrors"]:
+            msg = "; ".join(e.get("message", "") for e in r["userErrors"])
+            if "Automatic management" in msg: msg += " -> Shopify-Admin: Einstellungen > Richtlinien > Datenschutzerklärung > automatische Verwaltung ausschalten"
+            fehler.append(f"{t}: {msg}"); continue
         log("RECHTSTEXTE gesetzt:", t, len(body), "Zeichen ->", (r.get("shopPolicy") or {}).get("url"))
     for p in gql(POLICY_Q)["shop"]["shopPolicies"]: log("RECHTSTEXTE jetzt:", p["type"], len(p.get("body") or ""), "Zeichen", p.get("url"))
+    for f in fehler: log("RECHTSTEXTE NICHT gesetzt:", f)
+    if fehler: raise RuntimeError(f"{len(fehler)} Rechtstext(e) nicht gesetzt")
 
 VERSAND_Q="""{ deliveryProfiles(first: 5) { nodes { id name default profileLocationGroups { locationGroup { id } locationGroupZones(first: 30) { nodes {
   zone { id name countries { code { countryCode restOfWorld } } }
