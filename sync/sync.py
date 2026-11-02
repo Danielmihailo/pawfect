@@ -6,7 +6,8 @@ lovepawfect <- Zoodrop Sync  (Varianten gruppiert nach SUCHNUMMER)
   --mode update      : Gesamtfeed -> nur Preis, Bestand und Verkaufbarkeit, nur Abweichungen (schnell);
                        danach Rechtstexte abgleichen (wie --mode rechtstexte)
   --mode gesperrt    : nur Produkte mit Tag lp-gesperrt neu prüfen (nach neuen GPSR-/Futterdaten)
-  --mode rechtstexte : AGB, Widerrufsbelehrung, Datenschutz von der IT-Recht Kanzlei holen und in die Shopify-Rechtstexte
+  --mode versand     : Versandarten auf Sollzustand (DE VERSAND_DE / gratis ab GRATIS_AB, Nachbarländer), danach Rechtstexte
+  --mode rechtstexte : Impressum, AGB, Widerrufsbelehrung, Datenschutz von der IT-Recht Kanzlei holen und in die Shopify-Rechtstexte
                        schreiben, Versandseite aus den Versandeinstellungen erzeugen (nur bei Änderung)
   --mode audit       : nur lesen: Shop-Einstellungen, Versand, Rechtstexte, Datenlage
   --mode retag       : nur Tags/Produkttyp
@@ -567,7 +568,8 @@ def make_pages():
 # Hosting-Links der IT-Recht Kanzlei liefern immer die aktuelle Fassung; Änderungen der Kanzlei kommen so mit dem nächsten Lauf in den Shop.
 ITRK = {"TERMS_OF_SERVICE": "https://itrk.legal/1DXw.2Y.1dk7-iframe.html",   # AGB mit Kundeninformationen
         "REFUND_POLICY":    "https://itrk.legal/1DXw.2J.1dk7-iframe.html",   # Widerrufsbelehrung & Widerrufsformular
-        "PRIVACY_POLICY":   "https://itrk.legal/1DXw.8U.1dk7-iframe.html"}   # Datenschutzerklärung
+        "PRIVACY_POLICY":   "https://itrk.legal/1DXw.8U.1dk7-iframe.html",   # Datenschutzerklärung
+        "LEGAL_NOTICE":     "https://itrk.legal/1DXw.0.1dk7-de-iframe.html"} # Impressum
 LAND = {"DE":"Deutschland","AT":"Österreich","BE":"Belgien","DK":"Dänemark","LU":"Luxemburg","NL":"Niederlande"}
 # Lieferzeit ab Bestellung in Werktagen: (Lagerware, Ware aus dem Zoodrop-Fulfillment). DE wie im Theme (ship_days_min/max, +2/+3).
 LIEFERZEIT = {"DE": ("2–4", "4–7"), "AUSLAND": ("3–6", "5–9")}
@@ -585,7 +587,7 @@ def itrk_text(url):
     with urllib.request.urlopen(req, timeout=60) as r: page = r.read().decode("utf-8", "replace")
     m = re.search(r"(?is)<body[^>]*>(.*)</body>", page)
     body = re.sub(r"(?is)<(script|style|iframe)\b.*?</\1>", "", m.group(1) if m else page).strip()
-    if len(policy_plain(body)) < 1000: raise RuntimeError(f"Rechtstext leer oder unvollständig: {url}")
+    if len(policy_plain(body)) < 200: raise RuntimeError(f"Rechtstext leer oder unvollständig: {url}")   # Impressum hat ~300 Zeichen
     return body
 
 def eur(a): return f"{a:.2f}".replace(".", ",") + " €"
@@ -657,41 +659,67 @@ def set_rechtstexte(dry=False):
 
 VERSAND_Q="""{ deliveryProfiles(first: 5) { nodes { id name default profileLocationGroups { locationGroup { id } locationGroupZones(first: 30) { nodes {
   zone { id name countries { code { countryCode restOfWorld } } }
-  methodDefinitions(first: 30) { nodes { id name active rateProvider { ... on DeliveryRateDefinition { price { amount } } } } } } } } } } }"""
+  methodDefinitions(first: 30) { nodes { id name active rateProvider { ... on DeliveryRateDefinition { price { amount } } }
+    methodConditions { field operator conditionCriteria { __typename ... on MoneyV2 { amount } } } } } } } } } } } }"""
 PROFILE_MUT="mutation($id: ID!, $p: DeliveryProfileInput!) { deliveryProfileUpdate(id: $id, profile: $p) { profile { id } userErrors { field message } } }"
 NACHBARLAENDER=["AT","BE","LU","NL","DK"]   # Zoodrop liefert nur nach DE + diese Länder
+VERSAND_DE=6.99        # Kunde zahlt in DE (Zoodrop berechnet 5,99 netto = 7,13 brutto)
+GRATIS_AB=59.0         # ab diesem Warenwert versandkostenfrei in DE
+VERSAND_NACHBAR=13.99  # nur beim Neuanlegen der Nachbarzone
+
+def de_soll():
+    """DE: Standard VERSAND_DE bis GRATIS_AB-0,01 und Standard 0,00 ab GRATIS_AB – nie zwei Optionen zugleich"""
+    return [{"name":"Standard","active":True,"rateDefinition":{"price":{"amount":VERSAND_DE,"currencyCode":"EUR"}},
+             "priceConditionsToCreate":[{"criteria":{"amount":round(GRATIS_AB-0.01,2),"currencyCode":"EUR"},"operator":"LESS_THAN_OR_EQUAL_TO"}]},
+            {"name":"Standard","active":True,"rateDefinition":{"price":{"amount":0.0,"currencyCode":"EUR"}},
+             "priceConditionsToCreate":[{"criteria":{"amount":GRATIS_AB,"currencyCode":"EUR"},"operator":"GREATER_THAN_OR_EQUAL_TO"}]}]
+
+def methoden_sig(meths):
+    out=set()
+    for m in meths:
+        p=round(float(((m.get("rateProvider") or {}).get("price") or {}).get("amount") or 0),2)
+        cond=tuple(sorted((c.get("operator"),round(float((c.get("conditionCriteria") or {}).get("amount") or 0),2))
+                          for c in m.get("methodConditions") or [] if c.get("field")=="TOTAL_PRICE"))
+        out.add((bool(m.get("active")),p,cond))
+    return out
 
 def set_versand():
-    """Versand nur in Zoodrop-Länder: DE bleibt (ohne Express), EU-/Weltzonen raus, neue Zone AT/BE/LU/NL/DK"""
+    """Idempotent: DE = VERSAND_DE / gratis ab GRATIS_AB (keine weiteren Arten), Zone Nachbarländer = Zoodrop-Länder, alle anderen Zonen raus"""
+    soll={(True,VERSAND_DE,(("LESS_THAN_OR_EQUAL_TO",round(GRATIS_AB-0.01,2)),)),(True,0.0,(("GREATER_THAN_OR_EQUAL_TO",GRATIS_AB),))}
     prof=next(p for p in gql(VERSAND_Q)["deliveryProfiles"]["nodes"] if p.get("default"))
-    zones_del=[]; methods_del=[]; lg_id=None; price=None
+    zones_del=[]; methods_del=[]; de_neu=None; lg_de=None; nachbar=False
     for g in prof["profileLocationGroups"]:
-        lg_id=g["locationGroup"]["id"]
         for z in g["locationGroupZones"]["nodes"]:
             cc={(c["code"].get("countryCode") or "REST") for c in z["zone"]["countries"]}
             meths=z["methodDefinitions"]["nodes"]
             if "DE" in cc:
                 if cc-{"DE"}: raise RuntimeError(f"DE-Zone enthält weitere Länder: {sorted(cc)} – bitte von Hand prüfen")
-                for m in meths:
-                    if "express" in (m.get("name") or "").lower(): methods_del.append(m["id"]); log("VERSAND entferne Methode", m["name"], "aus", z["zone"]["name"])
-            else:
-                if cc & set(NACHBARLAENDER) and meths and price is None:
-                    price=((meths[0].get("rateProvider") or {}).get("price") or {}).get("amount")
-                zones_del.append(z["zone"]["id"]); log("VERSAND entferne Zone", z["zone"]["name"], ",".join(sorted(cc)))
+                lg_de=g["locationGroup"]["id"]
+                if methoden_sig(meths)!=soll or len(meths)!=2:
+                    de_neu=z["zone"]["id"]; methods_del+=[m["id"] for m in meths]
+                    log("VERSAND DE wird neu gesetzt, bisher:", sorted(methoden_sig(meths)))
+            elif cc==set(NACHBARLAENDER): nachbar=True
+            else: zones_del.append(z["zone"]["id"]); log("VERSAND entferne Zone", z["zone"]["name"], ",".join(sorted(cc)))
+    if not lg_de: raise RuntimeError("Keine Versandzone Deutschland im Standardprofil – bitte von Hand prüfen")
+    if de_neu:   # erst neue DE-Arten anlegen, dann alte löschen: DE ist nie ohne Versandart
+        r=gql(PROFILE_MUT,{"id":prof["id"],"p":{"locationGroupsToUpdate":[{"id":lg_de,"zonesToUpdate":[{"id":de_neu,"methodDefinitionsToCreate":de_soll()}]}]}})["deliveryProfileUpdate"]
+        if r["userErrors"]: raise RuntimeError(json.dumps(r["userErrors"], ensure_ascii=False))
     if zones_del or methods_del:
         r=gql(PROFILE_MUT,{"id":prof["id"],"p":{"zonesToDelete":zones_del,"methodDefinitionsToDelete":methods_del}})["deliveryProfileUpdate"]
         if r["userErrors"]: raise RuntimeError(json.dumps(r["userErrors"], ensure_ascii=False))
-    zone={"name":"Nachbarländer (Zoodrop)","countries":[{"code":c,"includeAllProvinces":True} for c in NACHBARLAENDER],
-          "methodDefinitionsToCreate":[{"name":"Standard","active":True,"rateDefinition":{"price":{"amount":float(price or 13.99),"currencyCode":"EUR"}}}]}
-    r=gql(PROFILE_MUT,{"id":prof["id"],"p":{"locationGroupsToUpdate":[{"id":lg_id,"zonesToCreate":[zone]}]}})["deliveryProfileUpdate"]
-    if r["userErrors"]: raise RuntimeError(json.dumps(r["userErrors"], ensure_ascii=False))
-    log("VERSAND neue Zone", ",".join(NACHBARLAENDER), "Standard", price or 13.99, "EUR")
+    if not nachbar:
+        zone={"name":"Nachbarländer (Zoodrop)","countries":[{"code":c,"includeAllProvinces":True} for c in NACHBARLAENDER],
+              "methodDefinitionsToCreate":[{"name":"Standard","active":True,"rateDefinition":{"price":{"amount":VERSAND_NACHBAR,"currencyCode":"EUR"}}}]}
+        r=gql(PROFILE_MUT,{"id":prof["id"],"p":{"locationGroupsToUpdate":[{"id":lg_de,"zonesToCreate":[zone]}]}})["deliveryProfileUpdate"]
+        if r["userErrors"]: raise RuntimeError(json.dumps(r["userErrors"], ensure_ascii=False))
+        log("VERSAND neue Zone", ",".join(NACHBARLAENDER), "Standard", VERSAND_NACHBAR, "EUR")
     for g in gql(VERSAND_Q)["deliveryProfiles"]["nodes"]:
         for lg in g["profileLocationGroups"]:
             for z in lg["locationGroupZones"]["nodes"]:
                 for m in z["methodDefinitions"]["nodes"]:
                     log("VERSAND jetzt", g["name"], "|", z["zone"]["name"], ",".join(sorted((c["code"].get("countryCode") or "REST") for c in z["zone"]["countries"])),
-                        "|", m["name"], (m.get("rateProvider") or {}).get("price"))
+                        "|", m["name"], "aktiv" if m.get("active") else "inaktiv", (m.get("rateProvider") or {}).get("price"),
+                        "|", "; ".join(f'{c.get("operator")} {(c.get("conditionCriteria") or {}).get("amount")}' for c in m.get("methodConditions") or []))
 
 def wipe_all():
     total=0
@@ -768,7 +796,11 @@ def main():
             return
         make_collections(); return
     if args.mode=="seiten": make_pages(); return
-    if args.mode=="versand": set_versand(); return
+    if args.mode=="versand":
+        set_versand()
+        try: set_rechtstexte()   # Versandseite folgt den neuen Preisen sofort
+        except Exception as e: log("RECHTSTEXTE FEHLER (Versand ist gesetzt):", str(e)[:400])
+        return
     if args.mode=="rechtstexte": set_rechtstexte(args.dry_run); return
     if args.mode=="wipe":
         if args.dry_run: log("[DRY-RUN] wuerde alle Produkte loeschen."); return

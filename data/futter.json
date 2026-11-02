@@ -119,6 +119,56 @@
   "quelle": "https://trixie.shop/products/soft-snack-dogorado-mit-huhn",
   "abgleich": "EAN 4011905315225 bzw. Art.-Nr. 31522 auf der Produktseite von trixie.shop gefunden („Soft Snack Dog'o'Rado mit Huhn“)"
  },
+ "25822-TRXI": {
+  "status": "gefunden",
+  "futtermittelart": "Ergänzungsfuttermittel",
+  "zusammensetzung": "Milch und Molkereierzeugnisse, Luzerne, Hefen, pflanzliche Nebenerzeugnisse (Chlorophyll 8 %), Fleisch und tierische Nebenerzeugnisse, Öle und Fette, Algen (2 %), Petersilie, Minze",
+  "analytische_bestandteile": "Fettgehalt 4,2 %, Protein 18,4 %, Rohasche 5,1 %, Rohfaser 1,4 %",
+  "zusatzstoffe": "Technologische Zusatzstoffe: Kieselsäure",
+  "fuetterungsempfehlung": "",
+  "quelle": "https://trixie.shop/products/maulhygiene-tabletten",
+  "abgleich": "EAN 4011905258225 bzw. Art.-Nr. 25822 auf der Produktseite von trixie.shop gefunden („Maulhygiene-Tabletten“)"
+ },
+ "42716-TRXI": {
+  "status": "gefunden",
+  "futtermittelart": "Ergänzungsfuttermittel",
+  "zusammensetzung": "Entenbrust (79 %), Kartoffelstärke, Glycerin, Mineralstoffe",
+  "analytische_bestandteile": "Fettgehalt 12 %, Feuchtegehalt 34 %, Protein 30 %, Rohasche 6 %, Rohfaser 1 %",
+  "zusatzstoffe": "Sensorische Zusatzstoffe: Farbstoff 1",
+  "fuetterungsempfehlung": "",
+  "quelle": "https://trixie.shop/products/premio-filets-bites-mit-entenbrust",
+  "abgleich": "EAN 4011905427164 bzw. Art.-Nr. 42716 auf der Produktseite von trixie.shop gefunden („Premio Filets Bites mit Entenbrust“)"
+ },
+ "60146-TRXI": {
+  "status": "unvollständig",
+  "futtermittelart": "Ergänzungsfuttermittel",
+  "zusammensetzung": "Naturlehm (84 %), Weizenflocken, Karotten (4 %)",
+  "analytische_bestandteile": "",
+  "zusatzstoffe": "",
+  "fuetterungsempfehlung": "",
+  "quelle": "https://trixie.shop/products/lehmstein-mit-karotte",
+  "abgleich": "EAN 4011905601465 bzw. Art.-Nr. 60146 auf der Produktseite von trixie.shop gefunden („Lehmstein mit Karotte“)"
+ },
+ "31518-TRXI": {
+  "status": "gefunden",
+  "futtermittelart": "Ergänzungsfuttermittel",
+  "zusammensetzung": "Getreide, pflanzliche Nebenerzeugnisse, Fleisch und tierische Nebenerzeugnisse, Öle und Fette, Fisch und Fischnebenerzeugnisse, Mineralstoffe (1,6 % Calcium), pflanzliches Protein, Propylenglycol",
+  "analytische_bestandteile": "Fettgehalt 5 %, Feuchtegehalt 17 %, Protein 13 %, Rohasche 3 %, Rohfaser 1 %",
+  "zusatzstoffe": "Technologische Zusatzstoffe: Konservierungsmittel; Sensorische Zusatzstoffe: Farbstoffe 1",
+  "fuetterungsempfehlung": "",
+  "quelle": "https://trixie.shop/products/junior-soft-snack-bones",
+  "abgleich": "EAN 4011905315188 bzw. Art.-Nr. 31518 auf der Produktseite von trixie.shop gefunden („Junior Soft Snack Bones“)"
+ },
+ "31548-TRXI-VAR": {
+  "status": "gefunden",
+  "futtermittelart": "Ergänzungsfuttermittel",
+  "zusammensetzung": "Entenfleisch (65 %), Kabeljau (20 %), Erbsenprotein, Glycerin, Kartoffelstärke, Mineralstoffe",
+  "analytische_bestandteile": "Fettgehalt 6 %, Feuchtegehalt 30 %, Protein 45 %, Rohasche 4 %, Rohfaser 1 %",
+  "zusatzstoffe": "Technologische Zusatzstoffe: Konservierungsmittel",
+  "fuetterungsempfehlung": "",
+  "quelle": "https://trixie.shop/products/carpaccio-mit-ente-kabeljau",
+  "abgleich": "EAN 4011905318042 bzw. Art.-Nr. 31804 auf der Produktseite von trixie.shop gefunden („Carpaccio mit Ente & Kabeljau“)"
+ },
  "9118680-WOK": {
   "status": "gefunden",
   "futtermittelart": "Ergänzungsfuttermittel für Katzen",
